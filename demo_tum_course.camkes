@@ -16,17 +16,6 @@ import <std_connector.camkes>;
 TimeServer_COMPONENT_DEFINE(TimeServer)
 
 //----------------------------------------------------------------------
-// Storage
-//----------------------------------------------------------------------
-
-#include "RPi_SPI_Flash/RPi_SPI_Flash.camkes"
-RPi_SPI_Flash_COMPONENT_DEFINE(RPi_SPI_Flash)
-RPi_SPI_Flash_HW_COMPONENT_DEFINE(RPi_SPI_Flash_HW)
-
-#include "StorageServer/camkes/StorageServer.camkes"
-StorageServer_COMPONENT_DEFINE(StorageServer)
-
-//----------------------------------------------------------------------
 // Network
 //----------------------------------------------------------------------
 
@@ -52,40 +41,12 @@ NetworkStack_PicoTcp_COMPONENT_DEFINE(
 assembly {
     composition {
         //----------------------------------------------------------------------
-        // Storage
-        //----------------------------------------------------------------------
-        component   RPi_SPI_Flash       flash;
-        component   RPi_SPI_Flash_HW    flash_hw;
-
-        RPi_SPI_Flash_INSTANCE_CONNECT(
-            flash,
-            flash_hw
-        )
-
-        //----------------------------------------------------------------------
-        // StorageServer
-        //----------------------------------------------------------------------
-        component   StorageServer       storageServer;
-
-        StorageServer_INSTANCE_CONNECT(
-            storageServer,
-            flash.storage_rpc, flash.storage_port
-        )
-
-        StorageServer_INSTANCE_CONNECT_CLIENTS(
-            storageServer,
-            testApp.storage_rpc_1, testApp.storage_dp_1,
-            testApp.storage_rpc_2, testApp.storage_dp_2
-        )
-
-        //----------------------------------------------------------------------
         // TimeServer
         //----------------------------------------------------------------------
         component TimeServer timeServer;
 
         TimeServer_INSTANCE_CONNECT_CLIENTS(
             timeServer,
-            flash.timeServer_rpc, flash.timeServer_notify,
             EXERCISE_DEMO_NIC_CONNECTION_TIMESERVER(nwDriver)
             nwStack.timeServer_rpc, nwStack.timeServer_notify
         )
@@ -106,7 +67,7 @@ assembly {
         )
 
         //----------------------------------------------------------------------
-        // Demo Component (using File System)
+        // Demo Component
         //----------------------------------------------------------------------
         component   TestApp      testApp;
 
@@ -117,26 +78,9 @@ assembly {
     }
 
     configuration {
-
-        StorageServer_INSTANCE_CONFIGURE_CLIENTS(
-            storageServer,
-            FILESYSTEM_1_STORAGE_OFFSET, FILESYSTEM_1_STORAGE_SIZE,
-            FILESYSTEM_2_STORAGE_OFFSET, FILESYSTEM_2_STORAGE_SIZE
-        )
-
-        StorageServer_CLIENT_ASSIGN_BADGES(
-            testApp.storage_rpc_1,
-            testApp.storage_rpc_2
-        )
-
         TimeServer_CLIENT_ASSIGN_BADGES(
-            flash.timeServer_rpc,
             EXERCISE_DEMO_NIC_TIMESERVER_CLIENTS(nwDriver)
             nwStack.timeServer_rpc
-        )
-
-        RPi_SPI_Flash_HW_INSTANCE_CONFIGURE_SELF(
-            flash_hw
         )
 
         EXERCISE_DEMO_NIC_CONFIG(nwDriver)

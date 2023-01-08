@@ -21,16 +21,6 @@ TimeServer_DeclareCAmkESComponent(
     TimeServer
 )
 
-RPi_SPI_Flash_DeclareCAmkESComponent(
-    RPi_SPI_Flash
-    LIBS
-        TimeServer_client
-)
-
-StorageServer_DeclareCAmkESComponent(
-    StorageServer
-)
-
 NetworkStack_PicoTcp_DeclareCAmkESComponent(
     NetworkStack_PicoTcp
     C_FLAGS
@@ -51,7 +41,6 @@ DeclareCAmkESComponent(
         system_config
         lib_debug
         os_core_api
-        os_filesystem
         os_socket_client
 )
 

@@ -15,6 +15,8 @@ os_set_config_file(
 #-------------------------------------------------------------------------------
 project(demo_tum_course C)
 
+option(HW_TPM "Use RPi_SPI_TPM component for hardware TPM support" OFF)
+
 include("plat/${PLATFORM}/plat_nic.cmake")
 include("components/SecureCommunication/SecureCommunication.cmake")
 
@@ -23,9 +25,19 @@ SecureCommunication_DeclareCAmkESComponent(
     SecureCommunication
 )
 
-EntropySource_DeclareCAmkESComponent(
-    EntropySource
-)
+if(HW_TPM)
+    add_definitions(-DUSE_HW_TPM)
+
+    include("components/RPi_SPI_TPM/CMakeLists.txt")
+
+    RPi_SPI_TPM_DeclareCAmkESComponent(
+        RPi_SPI_TPM
+    )
+else()
+    EntropySource_DeclareCAmkESComponent(
+        EntropySource
+    )
+endif()
 
 TimeServer_DeclareCAmkESComponent(
     TimeServer

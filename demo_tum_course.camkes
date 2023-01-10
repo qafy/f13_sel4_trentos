@@ -32,9 +32,6 @@ NetworkStack_PicoTcp_COMPONENT_DEFINE(
     NIC_DRIVER_RINGBUFFER_SIZE,
     NetworkStack_PicoTcp_NO_ADDITIONAL_INTERFACES)
 
-
-#include "components/TestApp/TestApp.camkes"
-
 //----------------------------------------------------------------------
 // SecureCommunication
 //----------------------------------------------------------------------
@@ -45,15 +42,27 @@ SecureCommunication_COMPONENT_DEFINE(
     SecureCommunication
 )
 
-//----------------------------------------------------------------------
-// EntropySource
-//----------------------------------------------------------------------
+#ifdef USE_HW_TPM
+    //----------------------------------------------------------------------
+    // TPM Driver
+    //----------------------------------------------------------------------
 
-#include "EntropySource/camkes/EntropySource.camkes"
-EntropySource_COMPONENT_DEFINE(
-    EntropySource
-)
+    #include "components/RPi_SPI_TPM/RPi_SPI_TPM.camkes";
 
+    RPi_SPI_TPM_COMPONENT_DEFINE(RPi_SPI_TPM)
+    RPi_SPI_TPM_HW_COMPONENT_DEFINE(RPi_SPI_TPM_HW)
+#else
+    //----------------------------------------------------------------------
+    // EntropySource
+    //----------------------------------------------------------------------
+
+    #include "EntropySource/camkes/EntropySource.camkes"
+    EntropySource_COMPONENT_DEFINE(
+        EntropySource
+    )
+#endif
+
+#include "components/TestApp/TestApp.camkes"
 
 //----------------------------------------------------------------------
 // System
@@ -87,24 +96,37 @@ assembly {
             nwDriver
         )
 
+        #ifdef USE_HW_TPM
+            //----------------------------------------------------------------------
+            // TPM Driver
+            //----------------------------------------------------------------------
+            component RPi_SPI_TPM       tpm;
+            component RPi_SPI_TPM_HW    tpm_hw;
+
+            RPi_SPI_TPM_INSTANCE_CONNECT(
+                tpm,
+                tpm_hw
+            )
+        #else
+            //----------------------------------------------------------------------
+            // EntropySource Component
+            //----------------------------------------------------------------------
+            component   EntropySource   entropySource; 
+
+            EntropySource_INSTANCE_CONNECT_CLIENT(
+                entropySource,
+                secureCommunication.entropy_rpc, secureCommunication.entropy_port
+            )
+        #endif
+
         //----------------------------------------------------------------------
         // SecureCommunication Component
         //----------------------------------------------------------------------
-        component   SecureCommunication     secureCommunication;
+        component   SecureCommunication    secureCommunication;
 
         NetworkStack_PicoTcp_INSTANCE_CONNECT_CLIENTS(
             nwStack,
             secureCommunication, networkStack
-        )
-
-        //----------------------------------------------------------------------
-        // EntropySource Component
-        //----------------------------------------------------------------------
-        component   EntropySource   entropySource; 
-
-        EntropySource_INSTANCE_CONNECT_CLIENT(
-            entropySource,
-            secureCommunication.entropy_rpc, secureCommunication.entropy_port
         )
 
         //----------------------------------------------------------------------
@@ -138,5 +160,7 @@ assembly {
             nwStack,
             2
         )
+
+        RPi_SPI_TPM_HW_INSTANCE_CONFIGURE_SELF(tpm_hw)
     }
 }

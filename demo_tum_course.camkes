@@ -75,11 +75,20 @@ assembly {
         //----------------------------------------------------------------------
         component TimeServer timeServer;
 
+    #ifdef USE_HW_TPM
+        TimeServer_INSTANCE_CONNECT_CLIENTS(
+            timeServer,
+            EXERCISE_DEMO_NIC_CONNECTION_TIMESERVER(nwDriver)
+            nwStack.timeServer_rpc, nwStack.timeServer_notify,
+            tpm.timeServer_rpc, tpm.timeServer_notify
+        )
+    #else
         TimeServer_INSTANCE_CONNECT_CLIENTS(
             timeServer,
             EXERCISE_DEMO_NIC_CONNECTION_TIMESERVER(nwDriver)
             nwStack.timeServer_rpc, nwStack.timeServer_notify
         )
+    #endif
 
         //----------------------------------------------------------------------
         // Network Driver
@@ -96,28 +105,28 @@ assembly {
             nwDriver
         )
 
-        #ifdef USE_HW_TPM
-            //----------------------------------------------------------------------
-            // TPM Driver
-            //----------------------------------------------------------------------
-            component RPi_SPI_TPM       tpm;
-            component RPi_SPI_TPM_HW    tpm_hw;
+    #ifdef USE_HW_TPM
+        //----------------------------------------------------------------------
+        // TPM Driver
+        //----------------------------------------------------------------------
+        component RPi_SPI_TPM       tpm;
+        component RPi_SPI_TPM_HW    tpm_hw;
 
-            RPi_SPI_TPM_INSTANCE_CONNECT(
-                tpm,
-                tpm_hw
-            )
-        #else
-            //----------------------------------------------------------------------
-            // EntropySource Component
-            //----------------------------------------------------------------------
-            component   EntropySource   entropySource; 
+        RPi_SPI_TPM_INSTANCE_CONNECT(
+            tpm,
+            tpm_hw
+        )
+    #else
+        //----------------------------------------------------------------------
+        // EntropySource Component
+        //----------------------------------------------------------------------
+        component   EntropySource   entropySource;
 
-            EntropySource_INSTANCE_CONNECT_CLIENT(
-                entropySource,
-                secureCommunication.entropy_rpc, secureCommunication.entropy_port
-            )
-        #endif
+        EntropySource_INSTANCE_CONNECT_CLIENT(
+            entropySource,
+            secureCommunication.entropy_rpc, secureCommunication.entropy_port
+        )
+    #endif
 
         //----------------------------------------------------------------------
         // SecureCommunication Component
@@ -141,10 +150,20 @@ assembly {
     }
 
     configuration {
+    #ifdef USE_HW_TPM
+        TimeServer_CLIENT_ASSIGN_BADGES(
+            EXERCISE_DEMO_NIC_TIMESERVER_CLIENTS(nwDriver)
+            nwStack.timeServer_rpc,
+            tpm.timeServer_rpc
+        )
+
+        RPi_SPI_TPM_HW_INSTANCE_CONFIGURE_SELF(tpm_hw)
+    #else
         TimeServer_CLIENT_ASSIGN_BADGES(
             EXERCISE_DEMO_NIC_TIMESERVER_CLIENTS(nwDriver)
             nwStack.timeServer_rpc
         )
+    #endif
 
         SecureCommunication_CLIENT_ASSIGN_BADGES(
             testApp, secureCommunication
@@ -160,7 +179,5 @@ assembly {
             nwStack,
             2
         )
-
-        RPi_SPI_TPM_HW_INSTANCE_CONFIGURE_SELF(tpm_hw)
     }
 }

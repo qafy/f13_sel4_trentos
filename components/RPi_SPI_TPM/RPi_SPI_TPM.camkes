@@ -17,6 +17,8 @@
 
 #pragma once
 
+import <std_connector.camkes>;
+
 //------------------------------------------------------------------------------
 
 
@@ -54,6 +56,8 @@
     _name_) \
     \
     component _name_ { \
+        uses      if_OS_Timer                timeServer_rpc; \
+        consumes  TimerReady                 timeServer_notify; \
         dataport  Buf(RPI_SPI_TPM_HW_BCM2837_DATAPORT_SIZE)  regBase; \
     }
 

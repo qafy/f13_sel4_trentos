@@ -256,7 +256,7 @@ typedef int64_t  INT64;
         /* Max: 43MHz */
         #define TPM2_SPI_MAX_HZ TPM2_SPI_MAX_HZ_NUVOTON
     #endif
-#else
+#elif (defined(WOLFTPM_SLB9670) || defined(WOLFTPM_SLB9672))
     /* Infineon OPTIGA SLB9670/SLB9672 */
     #ifdef WOLFTPM_SLB9670
         /* Max: 43MHz */
@@ -270,6 +270,10 @@ typedef int64_t  INT64;
     #ifndef TPM2_SPI_MAX_HZ
         #define TPM2_SPI_MAX_HZ TPM2_SPI_MAX_HZ_INFINEON
     #endif
+#else
+    /* use a safe MHz (minimum of above) */
+    #undef  TPM2_SPI_MAX_HZ
+    #define TPM2_SPI_MAX_HZ 33000000
 #endif
 
 /* Auto-chip detection requires SPI wait state support and safe SPI bus speed */

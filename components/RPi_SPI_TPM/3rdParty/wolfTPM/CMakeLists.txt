@@ -21,9 +21,8 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-project(wolfTPM VERSION 2.7.0 LANGUAGES C)
+project(wolftpm VERSION 2.7.0 LANGUAGES C)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(WOLFTPM_DEFINITIONS)
 
 set(TPM_SOURCES
@@ -37,12 +36,27 @@ set(TPM_SOURCES
     src/tpm2_wrap.c
     )
 
-# default to build shared library
-option(BUILD_SHARED_LIBS "Build shared libraries (.dll/.so) instead of static ones (.lib/.a)" ON)
-add_library(wolftpm ${TPM_SOURCES})
+add_library(wolftpm
+    STATIC
+    ${TPM_SOURCES}
+    )
 target_compile_definitions(wolftpm PRIVATE
     "BUILDING_WOLFTPM"
     )
+target_link_libraries(wolftpm
+    muslc
+    sel4
+    sel4_autoconf
+    lib_debug
+    lib_mem
+)
+
+if (RPi_SPI_TPM_DEBUG_TRACE)
+    set_source_files_properties(${TPM_SOURCES}
+        PROPERTIES
+            COMPILE_OPTIONS "-finstrument-functions"
+    )
+endif()
 
 
 # TODO
@@ -73,7 +87,7 @@ endif()
 set(WOLFTPM_INTERFACE "auto" CACHE STRING
     "Select interface to TPM")
 set_property(CACHE WOLFTPM_INTERFACE
-    PROPERTY STRINGS "auto;SWTPM;WINAPI;DEVTPM")
+    PROPERTY STRINGS "auto;SWTPM;WINAPI;DEVTPM;BCM2837_SPI")
 
 # automatically set
 message("INTERFACE ${WOLFTPM_INTERFACE}")
@@ -91,12 +105,6 @@ if("${WOLFTPM_INTERFACE}" STREQUAL "auto")
 endif("${WOLFTPM_INTERFACE}" STREQUAL "auto")
 
 
-if(WIN32)
-    target_compile_definitions(wolftpm PRIVATE
-        "_WINDLL"
-        )
-endif(WIN32)
-
 if("${WOLFTPM_INTERFACE}" STREQUAL "SWTPM")
     list(APPEND WOLFTPM_DEFINITIONS "-DWOLFTPM_SWTPM")
 
@@ -106,16 +114,14 @@ elseif("${WOLFTPM_INTERFACE}" STREQUAL "DEVTPM")
 elseif("${WOLFTPM_INTERFACE}" STREQUAL "WINAPI")
     list(APPEND WOLFTPM_DEFINITIONS "-DWOLFTPM_WINAPI")
     target_link_libraries(wolftpm PRIVATE tbs)
+elseif("${WOLFTPM_INTERFACE}" STREQUAL "BCM2837_SPI")
+    #list(APPEND WOLFTPM_DEFINITIONS "-DWOLFTPM_SLB9670")
 else()
     get_property(INTERFACE_OPTS CACHE WOLFTPM_INTERFACE
         PROPERTY STRINGS)
     message(FATAL_ERROR "\"${WOLFTPM_INTERFACE}\" is not known WOLFTPM_INTERFACE:"
         " ${INTERFACE_OPTS}")
 endif("${WOLFTPM_INTERFACE}" STREQUAL "SWTPM")
-
-# Examples
-set(WOLFTPM_EXAMPLES "yes" CACHE BOOL
-    "Build examples")
 
 target_include_directories(wolftpm
     PUBLIC
@@ -134,7 +140,7 @@ if (WITH_WOLFSSL)
     set(WOLFSSL_EXAMPLES "no" CACHE STRING "")
     set(WOLFSSL_CRYPT_TESTS "no" CACHE STRING "")
     add_subdirectory(${WITH_WOLFSSL_TREE} wolfssl)
-    target_link_libraries(wolftpm PUBLIC wolfssl)
+    target_link_libraries(wolftpm wolfssl)
 else()
     find_package(PkgConfig)
     pkg_check_modules(WOLFSSL wolfssl)
@@ -154,21 +160,6 @@ else()
         endif()
     endif()
 endif()
-
-if (WOLFTPM_EXAMPLES)
-    add_library(tpm_test_lib STATIC
-        examples/tpm_io.c
-        examples/tpm_test_keys.c
-        )
-    target_link_libraries(tpm_test_lib wolftpm)
-endif()
-
-function(add_tpm_example name src)
-    add_executable(${name}
-        examples/${src}
-        )
-    target_link_libraries(${name} wolftpm tpm_test_lib)
-endfunction()
 
 function(add_to_options_file DEFINITIONS OPTION_FILE)
     list(REMOVE_DUPLICATES DEFINITIONS)
@@ -242,60 +233,4 @@ file(APPEND ${OPTION_FILE} "}\n")
 file(APPEND ${OPTION_FILE} "#endif\n\n\n")
 file(APPEND ${OPTION_FILE} "#endif /* WOLFTPM_OPTIONS_H */\n\n")
 
-
-if (WOLFTPM_EXAMPLES)
-    add_tpm_example(activate_credential attestation/activate_credential.c)
-    add_tpm_example(make_credential attestation/make_credential.c)
-    add_tpm_example(bench bench/bench.c)
-    add_tpm_example(csr csr/csr.c)
-    add_tpm_example(gpio_config gpio/gpio_config.c)
-    add_tpm_example(gpio_read gpio/gpio_read.c)
-    add_tpm_example(gpio_set gpio/gpio_set.c)
-    add_tpm_example(keygen keygen/keygen.c)
-    add_tpm_example(keyimport keygen/keyimport.c)
-    add_tpm_example(keyload keygen/keyload.c)
-    add_tpm_example(flush management/flush.c)
-    add_tpm_example(native_test native/native_test.c)
-    add_tpm_example(read nvram/read.c)
-    add_tpm_example(store nvram/store.c)
-    add_tpm_example(extend pcr/extend.c)
-    add_tpm_example(quote pcr/quote.c)
-    add_tpm_example(read_pcr pcr/read_pcr.c)
-    add_tpm_example(reset pcr/reset.c)
-    add_tpm_example(pkcs7 pkcs7/pkcs7.c)
-    add_tpm_example(seal seal/seal.c)
-    add_tpm_example(unseal seal/unseal.c)
-    add_tpm_example(clock_set timestamp/clock_set.c)
-    add_tpm_example(signed_timestamp timestamp/signed_timestamp.c)
-    add_tpm_example(tls_client tls/tls_client.c)
-    add_tpm_example(tls_client_notpm tls/tls_client_notpm.c)
-    add_tpm_example(tls_server tls/tls_server.c)
-    add_tpm_example(wrap_test wrap/wrap_test.c)
-endif()
-
-
-####################################################
-# Installation
-####################################################
-
-include(GNUInstallDirs)
-
-install(TARGETS wolftpm
-        EXPORT  wolftpm-targets
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        RUNTIME DESTINATION bin
-        )
-
-# Install the export set
-install(EXPORT wolftpm-targets
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/wolftpm
-        FILE wolftpm-config.cmake)
-
-# Install the headers
-install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/wolftpm/
-        DESTINATION include/wolftpm
-        FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/wolftpm/
-        DESTINATION include/wolftpm
-        FILES_MATCHING PATTERN "*.h")
+message("${WOLFTPM_DEFINITIONS}")

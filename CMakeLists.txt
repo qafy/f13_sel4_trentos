@@ -32,7 +32,10 @@ if(HW_TPM)
 
     RPi_SPI_TPM_DeclareCAmkESComponent(
         RPi_SPI_TPM
+        LIBS
+            TimeServer_client
     )
+
 else()
     EntropySource_DeclareCAmkESComponent(
         EntropySource

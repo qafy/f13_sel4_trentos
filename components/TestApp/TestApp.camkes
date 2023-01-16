@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2021, Hensoldt Cyber GmbH
+ * Copyright (C) 2023, Jakob Kukla
  */
 
 #include <if_OS_Socket.camkes>

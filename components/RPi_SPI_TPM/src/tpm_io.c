@@ -1,6 +1,7 @@
 /* tpm_io.c
  *
  * Copyright (C) 2006-2022 wolfSSL Inc.
+ * Copyright (C) 2023, Jakob Kukla
  *
  * This file is part of wolfTPM.
  *
@@ -29,6 +30,8 @@
  *      - Native Windows
  *      - TPM Simulator
  *
+ * Code adapted from:
+ *  - wolfTPM examples/tpm_io.c (https://github.com/wolfSSL/wolfTPM/blob/a0bd9fef9842ffbdf933afbd15ed4fa8bc8daf26/examples/tpm_io.c)
  */
 
 #include <wolftpm/tpm2.h>

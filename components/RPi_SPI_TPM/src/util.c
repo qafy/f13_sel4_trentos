@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2023, Jakob Kukla
+ */
+
 #include "TimeServer.h"
 #include "lib_debug/Debug.h"
 

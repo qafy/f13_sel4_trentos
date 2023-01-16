@@ -1,6 +1,7 @@
 /* tpm_io.h
  *
  * Copyright (C) 2006-2022 wolfSSL Inc.
+ * Copyright (C) 2023, Jakob Kukla
  *
  * This file is part of wolfTPM.
  *
@@ -17,6 +18,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ * Code adapted from:
+ *  - wolfTPM examples/tpm_io.h (https://github.com/wolfSSL/wolfTPM/blob/a0bd9fef9842ffbdf933afbd15ed4fa8bc8daf26/examples/tpm_io.h)
  */
 
 #ifndef _TPM_IO_H_

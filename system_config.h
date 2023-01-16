@@ -2,6 +2,7 @@
  * OS libraries configurations
  *
  * Copyright (C) 2021, HENSOLDT Cyber GmbH
+ * Copyright (C) 2023, Jakob Kukla
  */
 
 

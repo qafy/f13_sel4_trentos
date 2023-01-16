@@ -32,6 +32,8 @@ NetworkStack_PicoTcp_COMPONENT_DEFINE(
     NIC_DRIVER_RINGBUFFER_SIZE,
     NetworkStack_PicoTcp_NO_ADDITIONAL_INTERFACES)
 
+#include "components/SecureCommunication/SecureCommunication.camkes"
+
 #include "components/TestApp/TestApp.camkes";
 
 //----------------------------------------------------------------------
@@ -65,6 +67,11 @@ assembly {
             nwStack,
             nwDriver
         )
+
+        //----------------------------------------------------------------------
+        // SecureCommunication Component
+        //----------------------------------------------------------------------
+        component   SecureCommunication    secureCommunication;
 
         //----------------------------------------------------------------------
         // Demo Component

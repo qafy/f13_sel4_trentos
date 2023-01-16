@@ -110,5 +110,3 @@ import <global-connectors.camkes>;
     ...) \
     \
     FOR_EACH_2P(SecureCommunication_BADGE_ASSIGNER,UNUSED,UNUSED,__VA_ARGS__)
-
-

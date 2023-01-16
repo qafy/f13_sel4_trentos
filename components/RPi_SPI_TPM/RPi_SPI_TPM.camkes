@@ -18,6 +18,7 @@
 #pragma once
 
 import <std_connector.camkes>;
+import <if_OS_Entropy.camkes>;
 
 //------------------------------------------------------------------------------
 
@@ -58,6 +59,8 @@ import <std_connector.camkes>;
     component _name_ { \
         uses      if_OS_Timer                timeServer_rpc; \
         consumes  TimerReady                 timeServer_notify; \
+        provides  if_OS_Entropy              entropy_rpc; \
+        dataport  Buf                        entropy_port; \
         dataport  Buf(RPI_SPI_TPM_HW_BCM2837_DATAPORT_SIZE)  regBase; \
     }
 
@@ -99,3 +102,32 @@ import <std_connector.camkes>;
     \
     _inst_.regBase_paddr  = RPI_SPI_TPM_HW_BCM2837_DATAPORT_PADDR; \
     _inst_.regBase_size   = RPI_SPI_TPM_HW_BCM2837_DATAPORT_SIZE;
+
+
+//------------------------------------------------------------------------------
+
+
+/*
+ * Connect a client to the RPi_SPI_TPM instance via this macro:
+ *
+ *      RPi_SPI_TPM_INSTANCE_CONNECT_CLIENT(
+ *          <instance>,
+ *          <entropy>.<rpc>, <entropy>.<port>
+ *      )
+ *
+ */
+#define RPi_SPI_TPM_INSTANCE_CONNECT_CLIENT( \
+    _inst_, \
+    _rpc_, \
+    _port_) \
+    \
+    connection seL4RPCCall \
+        _inst_ ## _entropySource_rpc( \
+            from    _rpc_, \
+            to      _inst_.entropy_rpc \
+        ); \
+    connection seL4SharedData \
+        _inst_ ## _entropySource_port( \
+            from    _port_, \
+            to      _inst_.entropy_port \
+        );

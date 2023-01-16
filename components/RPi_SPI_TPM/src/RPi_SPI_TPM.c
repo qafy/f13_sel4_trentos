@@ -5,6 +5,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include "OS_Dataport.h"
 #include "lib_debug/Debug.h"
 
 #include <inttypes.h>
@@ -80,4 +81,35 @@ void post_init(void) {
   tpm_init();
 
   Debug_LOG_INFO("BCM2837_SPI_TPM done");
+}
+
+//------------------------------------------------------------------------------
+// Interface EntropySource
+//------------------------------------------------------------------------------
+
+static OS_Dataport_t e_port = OS_DATAPORT_ASSIGN(entropy_port);
+
+//------------------------------------------------------------------------------
+size_t entropy_rpc_read(const size_t len) {
+  size_t sz;
+  int rc;
+  WOLFTPM2_BUFFER random;
+
+  // Make sure we don't exceed the dataport len
+  sz = OS_Dataport_getSize(e_port);
+  sz = len > sz ? sz : len;
+
+  random.size = sz;
+  memset(random.buffer, 0, sizeof(random.buffer));
+
+  rc = wolfTPM2_GetRandom(&dev, random.buffer, sizeof(random.buffer));
+  if (rc != TPM_RC_SUCCESS) {
+    Debug_LOG_ERROR("TPM GetRandom failed");
+    // TODO: How to report an error with this interface?
+    return -1;
+  }
+
+  memcpy(OS_Dataport_getBuf(e_port), random.buffer, sz);
+
+  return sz;
 }

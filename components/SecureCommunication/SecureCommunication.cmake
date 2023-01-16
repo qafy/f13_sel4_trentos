@@ -1,5 +1,5 @@
 #
-# Network Stack PicoTcp component
+# Secure Communication component
 #
 # Copyright (C) 2021, HENSOLDT Cyber GmbH
 #

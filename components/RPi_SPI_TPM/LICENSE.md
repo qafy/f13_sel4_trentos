@@ -13,3 +13,4 @@ and the source from which they were obtained:
 | Name     | SPDX Identifier | Source                                        |
 |----------|-----------------|-----------------------------------------------|
 | bcm2837  | GPL-3.0-only    | <https://www.airspayce.com/mikem/bcm2835/>    |
+| wolfTPM  | GPL-2.0-only    | <https://github.com/wolfSSL/wolfTPM>          |

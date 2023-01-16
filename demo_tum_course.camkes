@@ -2,6 +2,7 @@
  * Main CAmkES configuration file of the exercise demo application.
  *
  * Copyright (C) 2021, Hensoldt Cyber GmbH
+ * Copyright (C) 2023, Jakob Kukla
  */
 
 import <std_connector.camkes>;

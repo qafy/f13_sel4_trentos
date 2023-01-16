@@ -2,6 +2,7 @@
 # Demo TUM Course
 #
 # Copyright (C) 2021, Hensoldt Cyber GmbH
+# Copyright (C) 2023, Jakob Kukla
 #
 
 cmake_minimum_required(VERSION 3.7.2)

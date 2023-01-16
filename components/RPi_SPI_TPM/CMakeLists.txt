@@ -2,7 +2,11 @@
 # RasPi3 (BCM2837) SPI TPM driver
 #
 # Copyright (C) 2020-2021, HENSOLDT Cyber GmbH
+# Copyright (C) 2023, Jakob Kukla
 # SPDX-License-Identifier: BSD-3-Clause
+#
+# Code adapted from:
+#  - TRENTOS RPi_SPI_Flash component
 #
 
 cmake_minimum_required(VERSION 3.17)

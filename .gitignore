@@ -1,0 +1,7 @@
+build
+uart
+assignip
+buildvirtual
+simulate
+httpserver
+plat/zynq7000/*

@@ -1,0 +1,16 @@
+
+#pragma once
+
+#include "NIC_Dummy/NIC_Dummy.camkes"
+NIC_Dummy_COMPONENT_DEFINE(NIC_Dummy, NIC_DRIVER_RINGBUFFER_SIZE)
+
+
+// Create a RPi3 NIC driver instance.
+#define EXERCISE_DEMO_NIC_INSTANCE(_nic_) \
+    component NIC_Dummy _nic_; \
+    
+#define EXERCISE_DEMO_NIC_CONNECTION_TIMESERVER(_nic_)
+
+#define EXERCISE_DEMO_NIC_TIMESERVER_CLIENTS(_nic_)
+
+#define EXERCISE_DEMO_NIC_CONFIG(_nic_) 

@@ -16,7 +16,7 @@
 //----------------------------------------------------------------------
 
 static const if_OS_Socket_t networkStackCtx =
-    IF_OS_SOCKET_ASSIGN(networkStack);
+    IF_OS_SOCKET_ASSIGN(secureCommunication);
 
 //------------------------------------------------------------------------------
 static OS_Error_t
@@ -65,12 +65,13 @@ waitForConnectionEstablished(
         char evtBuffer[128];
         const size_t evtBufferSize = sizeof(evtBuffer);
         int numberOfSocketsWithEvents;
-
+     
         ret = OS_Socket_getPendingEvents(
                   &networkStackCtx,
                   evtBuffer,
                   evtBufferSize,
                   &numberOfSocketsWithEvents);
+ 
         if (ret != OS_SUCCESS)
         {
             Debug_LOG_ERROR("OS_Socket_getPendingEvents() failed, code %d",
@@ -144,6 +145,7 @@ waitForConnectionEstablished(
             ret = event.currentError;
             break;
         }
+
     }
 
     return ret;
@@ -189,6 +191,7 @@ int run()
     }
 
     ret = waitForConnectionEstablished(hSocket.handleID);
+ 
     if (ret != OS_SUCCESS)
     {
         Debug_LOG_ERROR("waitForConnectionEstablished() failed, error %d", ret);
@@ -199,7 +202,7 @@ int run()
     Debug_LOG_INFO("Send request to host...");
 
     char* request = "GET / HTTP/1.0\r\nHost: " ETH_GATEWAY_ADDR
-                    "\r\nConnection: close\r\n\r\n";
+                    "\r\nConnection: close\r\n\r\n\0x0";
 
     size_t len_request = strlen(request);
     size_t n;

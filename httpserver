@@ -1,0 +1,2 @@
+#!/bin/sh
+while true; do printf 'HTTP/1.0 200 OK\n\n%s' "$(cat index.html)" | nc -l 8443; done

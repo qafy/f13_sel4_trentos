@@ -16,6 +16,16 @@ os_set_config_file(
 project(demo_tum_course C)
 
 include("plat/${PLATFORM}/plat_nic.cmake")
+include("components/SecureCommunication/SecureCommunication.cmake")
+
+
+SecureCommunication_DeclareCAmkESComponent(
+    SecureCommunication
+)
+
+EntropySource_DeclareCAmkESComponent(
+    EntropySource
+)
 
 TimeServer_DeclareCAmkESComponent(
     TimeServer
@@ -36,7 +46,6 @@ DeclareCAmkESComponent(
         components/TestApp/src/TestApp.c
     C_FLAGS
         -Wall
-        -Werror
     LIBS
         system_config
         lib_debug

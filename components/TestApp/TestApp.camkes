@@ -8,5 +8,5 @@ component TestApp {
     control;
 
     // Networking
-    IF_OS_SOCKET_USE(networkStack)
+    IF_OS_SOCKET_USE(secureCommunication)
 }

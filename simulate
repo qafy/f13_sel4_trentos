@@ -1,0 +1,4 @@
+#!/bin/sh
+cd ../../../build-zynq7000-Debug-tpm/
+sudo ../sdk/scripts/open_trentos_test_env.sh ./simulate
+cd ../sdk/demos/ws2022_team_4_tpm

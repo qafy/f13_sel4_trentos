@@ -1,0 +1,2 @@
+sudo ip addr add 10.0.0.10/24 dev enp0s20f0u1
+ip a

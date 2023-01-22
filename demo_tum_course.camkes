@@ -32,7 +32,26 @@ NetworkStack_PicoTcp_COMPONENT_DEFINE(
     NIC_DRIVER_RINGBUFFER_SIZE,
     NetworkStack_PicoTcp_NO_ADDITIONAL_INTERFACES)
 
-#include "components/TestApp/TestApp.camkes";
+#include "components/TestApp/TestApp.camkes"
+
+//----------------------------------------------------------------------
+// SecureCommunication
+//----------------------------------------------------------------------
+
+#include "components/SecureCommunication/SecureCommunication.camkes"
+
+SecureCommunication_COMPONENT_DEFINE(
+    SecureCommunication
+)
+
+//----------------------------------------------------------------------
+// EntropySource
+//----------------------------------------------------------------------
+
+#include "EntropySource/camkes/EntropySource.camkes"
+EntropySource_COMPONENT_DEFINE(
+    EntropySource
+)
 
 //----------------------------------------------------------------------
 // System
@@ -67,13 +86,33 @@ assembly {
         )
 
         //----------------------------------------------------------------------
+        // SecureCommunication Component
+        //----------------------------------------------------------------------
+        component   SecureCommunication     secureCommunication;
+
+        NetworkStack_PicoTcp_INSTANCE_CONNECT_CLIENTS(
+            nwStack,
+            secureCommunication, networkStack
+        )
+
+        //----------------------------------------------------------------------
+        // EntropySource Component
+        //----------------------------------------------------------------------
+        component   EntropySource   entropySource; 
+
+        EntropySource_INSTANCE_CONNECT_CLIENT(
+            entropySource,
+            secureCommunication.entropy_rpc, secureCommunication.entropy_port
+        )
+
+        //----------------------------------------------------------------------
         // Demo Component
         //----------------------------------------------------------------------
         component   TestApp      testApp;
 
-        NetworkStack_PicoTcp_INSTANCE_CONNECT_CLIENTS(
-            nwStack,
-            testApp, networkStack
+        SecureCommunication_INSTANCE_CONNECT_CLIENTS(
+            secureCommunication,
+            testApp, secureCommunication
         )
     }
 
@@ -83,10 +122,14 @@ assembly {
             nwStack.timeServer_rpc
         )
 
-        EXERCISE_DEMO_NIC_CONFIG(nwDriver)
+        SecureCommunication_CLIENT_ASSIGN_BADGES(
+            testApp, secureCommunication
+        )
 
+        EXERCISE_DEMO_NIC_CONFIG(nwDriver)
+        
         NetworkStack_PicoTcp_CLIENT_ASSIGN_BADGES(
-            testApp, networkStack
+            secureCommunication, networkStack
         )
 
         NetworkStack_PicoTcp_INSTANCE_CONFIGURE_CLIENTS(

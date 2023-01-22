@@ -1,0 +1,114 @@
+/**
+ * Copyright (C) 2021, Hensoldt Cyber GmbH
+ */
+
+#pragma once
+
+import <std_connector.camkes>;
+import <global-connectors.camkes>;
+
+#include "lib_macros/ForEach.h"
+
+#include <if_OS_Socket.camkes>
+#include <if_OS_Entropy.camkes>
+
+
+/**
+ * Defines a secure communication component.
+ *
+ * It can offer one or more socket interfaces and can connect to network stack
+ * component via the NIC component interface.
+ *
+ * @param[in] name             Name of the network stack component. This is
+ *                             meant not to be an instance name but rather a
+ *                             'type' name.
+ */
+#define SecureCommunication_COMPONENT_DEFINE( \
+    name \
+    ) \
+    \
+    component name \
+    { \
+        control; \
+        \
+        /*------------------------------------------------------------------*/ \
+        /* interface to application */ \
+        IF_OS_SOCKET_PROVIDE(secureCommunication) \
+        /* Networking */ \
+        IF_OS_SOCKET_USE(networkStack) \
+        /* Entropy */\
+        uses    if_OS_Entropy   entropy_rpc; \
+        dataport    Buf   entropy_port; \
+        \
+    }
+
+
+ /**
+ * Connects a variable number of client components to the if_OS_Socket interface
+ * of a secure communication component instance.
+ *
+ * @param[in] inst              Name of the secure communication component instance.
+ * @param[in] ...               List of client user component instance names and
+ *                              the prefix used to generate a unique name for
+ *                              the connectors used in IF_OS_SOCKET_USE() and
+ *                              that should be connected with the network stack
+ *                              instance specified earlier. To connect several
+ *                              user components at once follow the pattern of:
+ *
+ *                              <inst_user1>, <inst_user1_prefix_if_os_socket>,
+ *                              <inst_user2>, <inst_user2_prefix_if_os_socket>,
+ *                              ...
+ */
+#define SecureCommunication_INSTANCE_CONNECT_CLIENTS( \
+    inst, \
+    ...) \
+    \
+    FOR_EACH_2P(IF_OS_SOCKET_CONNECT, \
+                inst, \
+                secureCommunication, \
+                __VA_ARGS__)
+
+// Assign a single badge; this is used internally
+#define SecureCommunication_BADGE_ASSIGNER( \
+    _unused0_, \
+    _unused1_, \
+    _inst_user_, \
+    _inst_user_field_prefix_, \
+    _num_) \
+    \
+    _inst_user_._inst_user_field_prefix_ ## _rpc_attributes = (100 + _num_);
+
+/**
+ * Assign a badge value to a client.
+ *
+ *      SecureCommunication_CLIENT_ASSIGN_BADGE(
+ *          <inst_user1>, <inst_user1_prefix_if_os_socket>, <ID>
+ *      )
+ *
+ */
+#define SecureCommunication_CLIENT_ASSIGN_BADGE( \
+    _inst_user_, \
+    _inst_user_field_prefix_, \
+    _val_) \
+    \
+    _inst_user_._inst_user_field_prefix_ ## _rpc_attributes = _val_;
+
+/**
+ * Assign badges to a list of clients; badge IDs will start at 101 and then be
+ * incremented.
+ *
+ *      SecureCommunication_CLIENT_ASSIGN_BADGES(
+ *          <inst_user1>, <inst_user1_prefix_if_os_socket>,
+ *          <inst_user2>, <inst_user2_prefix_if_os_socket>,
+ *           ...
+ *      )
+ *
+ * NOTE: Can take up to 8 clients.
+ *
+ */
+#define SecureCommunication_CLIENT_ASSIGN_BADGES( \
+    ...) \
+    \
+    FOR_EACH_2P(SecureCommunication_BADGE_ASSIGNER,UNUSED,UNUSED,__VA_ARGS__)
+
+

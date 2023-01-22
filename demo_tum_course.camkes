@@ -32,6 +32,7 @@ NetworkStack_PicoTcp_COMPONENT_DEFINE(
     NIC_DRIVER_RINGBUFFER_SIZE,
     NetworkStack_PicoTcp_NO_ADDITIONAL_INTERFACES)
 
+
 #include "components/TestApp/TestApp.camkes"
 
 //----------------------------------------------------------------------
@@ -52,6 +53,7 @@ SecureCommunication_COMPONENT_DEFINE(
 EntropySource_COMPONENT_DEFINE(
     EntropySource
 )
+
 
 //----------------------------------------------------------------------
 // System

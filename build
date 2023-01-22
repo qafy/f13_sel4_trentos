@@ -1,9 +1,0 @@
-#!/bin/sh
-cd ../../..
-sudo sdk/scripts/open_trentos_build_env.sh \
-sdk/build-system.sh \
-sdk/demos/ws2022_team_4_tpm \
-rpi3 \
-build-rpi3-Debug-tpm \
--DCMAKE_BUILD_TYPE=Debug
-cd sdk/demos/ws2022_team_4_tpm

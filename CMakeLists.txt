@@ -28,6 +28,8 @@ SecureCommunication_DeclareCAmkESComponent(
 
 if(HW_TPM)
     add_definitions(-DUSE_HW_TPM)
+    # Small hack to add definitions to the camkes preprocessor
+    set_property(GLOBAL APPEND PROPERTY CAMKES_ROOT_CPP_FLAGS "-DUSE_HW_TPM")
 
     include("components/RPi_SPI_TPM/CMakeLists.txt")
 

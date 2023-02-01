@@ -176,7 +176,7 @@ elseif(WIN32)
 # Windows cl.exe does not support the -Wextra, -Wno-unused and -Werror flags.
 set(CMAKE_C_FLAGS "-Wall ${CMAKE_C_FLAGS}")
 else()
-set(CMAKE_C_FLAGS "-Wall -Wextra -Wno-unused -Werror ${CMAKE_C_FLAGS}")
+set(CMAKE_C_FLAGS "-Wall -Wextra -Wno-unused ${CMAKE_C_FLAGS}")
 endif()
 
 ####################################################
@@ -255,6 +255,9 @@ if(NOT WOLFSSL_SINGLE_THREADED)
             "-DHAVE_PTHREAD"
             "-D_POSIX_THREADS")
     endif()
+else()
+    list(APPEND WOLFSSL_DEFINITIONS
+        "-DSINGLE_THREADED")
 endif()
 
 
@@ -1925,6 +1928,15 @@ if(${BUILD_SHARED_LIBS})
     target_compile_definitions(wolfssl PUBLIC "WOLFSSL_DLL")
 endif()
 
+if (RPi_SPI_TPM_DEBUG_TRACE)
+    set_source_files_properties(${LIB_SOURCES}
+        PROPERTIES
+            COMPILE_OPTIONS "-finstrument-functions"
+    )
+endif()
+
+
+
 ####################################################
 # Include Directories
 ####################################################
@@ -2230,45 +2242,6 @@ set(INSTALLED_EXAMPLES
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/benchmark/tls_bench.c
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/client/client.c)
 
-# Install the library
-install(TARGETS wolfssl
-        EXPORT wolfssl-targets
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        RUNTIME DESTINATION bin
-        )
-# Install the headers
-install(DIRECTORY ${WOLFSSL_OUTPUT_BASE}/wolfssl/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/wolfssl
-        FILES_MATCHING PATTERN "*.h"
-        REGEX ${EXCLUDED_HEADERS_REGEX} EXCLUDE)
-install(DIRECTORY ${WOLFSSL_OUTPUT_BASE}/cyassl/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cyassl
-        FILES_MATCHING PATTERN "*.h"
-        REGEX ${EXCLUDED_HEADERS_REGEX} EXCLUDE)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/wolfssl/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/wolfssl
-        FILES_MATCHING PATTERN "*.h"
-        REGEX ${EXCLUDED_HEADERS_REGEX} EXCLUDE)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cyassl/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cyassl
-        FILES_MATCHING PATTERN "*.h"
-        REGEX ${EXCLUDED_HEADERS_REGEX} EXCLUDE)
-
-
-# Install the examples
-install(FILES ${INSTALLED_EXAMPLES}
-        DESTINATION ${CMAKE_INSTALL_DOCDIR}/example)
-# Install README.txt and taoCert.txt
-install(FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/doc/README.txt
-        ${CMAKE_CURRENT_SOURCE_DIR}/certs/taoCert.txt
-        DESTINATION ${CMAKE_INSTALL_DOCDIR})
-# Install the export set
-install(EXPORT wolfssl-targets
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/wolfssl
-        FILE wolfssl-config.cmake)
-
 # TODO: Distro build + rules for what to include in the distro.
 #       See various include.am files.
 
@@ -2281,3 +2254,11 @@ set(VERSION ${PROJECT_VERSION})
 configure_file(support/wolfssl.pc.in ${CMAKE_CURRENT_BINARY_DIR}/support/wolfssl.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/support/wolfssl.pc
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+target_link_libraries(wolfssl PRIVATE
+    muslc
+    sel4
+    sel4_autoconf
+    lib_debug
+    lib_mem
+)

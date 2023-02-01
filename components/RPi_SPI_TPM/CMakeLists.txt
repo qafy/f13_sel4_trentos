@@ -36,6 +36,12 @@ function(RPi_SPI_TPM_DeclareCAmkESComponent name)
     set(RPi_SPI_TPM_DEBUG_TRACE "no" CACHE STRING
         "Enables option for debug tracing (default: disabled)")
 
+    # wolfSSL
+    set(WITH_WOLFSSL_TREE ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/3rdParty/wolfSSL)
+    set(WOLFSSL_DEBUG "no")
+    set(WOLFSSL_SINGLE_THREADED "yes")
+
+    # wolfTPM
     set(WOLFTPM_DEBUG "no")
     set(WOLFTPM_INTERFACE "BCM2837_SPI")
 

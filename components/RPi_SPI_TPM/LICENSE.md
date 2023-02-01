@@ -14,3 +14,4 @@ and the source from which they were obtained:
 |----------|-----------------|-----------------------------------------------|
 | bcm2837  | GPL-3.0-only    | <https://www.airspayce.com/mikem/bcm2835/>    |
 | wolfTPM  | GPL-2.0-only    | <https://github.com/wolfSSL/wolfTPM>          |
+| wolfSSL  | GPL-2.0-only    | <https://github.com/wolfSSL/wolfssl>          |

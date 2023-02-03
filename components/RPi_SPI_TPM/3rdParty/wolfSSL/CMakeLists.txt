@@ -122,36 +122,6 @@ include(TestBigEndian)
 
 test_big_endian(WORDS_BIGENDIAN)
 
-# Thread local storage
-include(CheckCSourceCompiles)
-
-set(TLS_KEYWORDS "__thread" "__declspec(thread)")
-foreach(TLS_KEYWORD IN LISTS TLS_KEYWORDS)
-    set(TLS_CODE "#include <stdlib.h>
-                  static void foo(void) {
-                     static ${TLS_KEYWORD} int bar\;
-                     exit(1)\;
-                  }
-
-                  int main() {
-                    return 0\;
-                  }"
-    )
-    check_c_source_compiles(${TLS_CODE} THREAD_LS_ON)
-
-    if(THREAD_LS_ON)
-        list(APPEND WOLFSSL_DEFINITIONS "-DHAVE_THREAD_LS")
-        break()
-    else()
-        # THREAD_LS_ON is cached after each call to
-        # check_c_source_compiles, and the function
-        # won't run subsequent times if the variable
-        # is in the cache. To make it run again, we
-        # need to remove the variable from the cache.
-        unset(THREAD_LS_ON CACHE)
-    endif()
-endforeach()
-
 # TODO: AX_PTHREAD does a lot. Need to implement the
 #       rest of its logic.
 find_package(Threads)

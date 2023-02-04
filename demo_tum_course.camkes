@@ -121,7 +121,8 @@ assembly {
         RPi_SPI_TPM_INSTANCE_CONNECT_CLIENT(
             tpm,
             secureCommunication.entropy_rpc, secureCommunication.entropy_port,
-            secureCommunication.crypto_rpc, secureCommunication.crypto_port
+            secureCommunication.crypto_rpc, secureCommunication.crypto_port,
+            secureCommunication.keystore_rpc, secureCommunication.keystore_port
         )
     #else
         //----------------------------------------------------------------------

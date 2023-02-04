@@ -57,6 +57,7 @@ function(SecureCommunication_DeclareCAmkESComponent
     if(HW_TPM)
         list(APPEND SECURE_COMMUNICATION_LIBS
             tpm_crypto
+            tpm_keystore
         )
     endif()
 

@@ -66,6 +66,7 @@ function(RPi_SPI_TPM_DeclareCAmkESComponent name)
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/3rdParty/bcm2837/bcm2837_spi.c
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/RPi_SPI_TPM.c
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/crypto_rpc.c
+            ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/keystore_rpc.c
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/tpm_int.c
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/tpm_io.c
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/util.c
@@ -103,4 +104,24 @@ target_sources(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
     INTERFACE
         "${CMAKE_CURRENT_LIST_DIR}/libs/tpm_crypto/include"
+)
+
+#------------------------------------------------------------------------------
+
+set(TPM_KEYSTORE_SOURCES
+    "${CMAKE_CURRENT_LIST_DIR}/libs/tpm_keystore/src/keystore.c"
+)
+
+project(tpm_keystore C)
+
+add_library(${PROJECT_NAME} INTERFACE)
+
+target_sources(${PROJECT_NAME}
+    INTERFACE
+        ${TPM_KEYSTORE_SOURCES}
+)
+
+target_include_directories(${PROJECT_NAME}
+    INTERFACE
+        "${CMAKE_CURRENT_LIST_DIR}/libs/tpm_keystore/include"
 )

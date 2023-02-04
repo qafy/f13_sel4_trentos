@@ -54,6 +54,7 @@
 // TPM
 //-----------------------------------------------------------------------------
 #define TPM_SRK_HANDLE 0x81000200
+#define TPM_RSA_BASE_HANDLE 0x81000201
 #define TPM_SRK_AUTH "ThisIsMySRKAuth"
 #define TPM_RSA_AUTH "ThisIsMyKeyAuth"
 

@@ -25,6 +25,7 @@ import <std_connector.camkes>;
 import <if_OS_Entropy.camkes>;
 
 #include "interfaces/if_Crypto.camkes"
+#include "interfaces/if_Keystore.camkes"
 
 //------------------------------------------------------------------------------
 
@@ -69,6 +70,8 @@ import <if_OS_Entropy.camkes>;
         dataport  Buf                        entropy_port; \
         provides  if_Crypto                  crypto_rpc; \
         dataport  Buf                        crypto_port; \
+        provides  if_Keystore                keystore_rpc; \
+        dataport  Buf                        keystore_port; \
         dataport  Buf(RPI_SPI_TPM_HW_BCM2837_DATAPORT_SIZE)  regBase; \
     }
 
@@ -121,7 +124,8 @@ import <if_OS_Entropy.camkes>;
  *      RPi_SPI_TPM_INSTANCE_CONNECT_CLIENT(
  *          <instance>,
  *          <entropy>.<rpc>, <entropy>.<port>,
- *          <crypto>.<rpc>, <crypto>.<port>
+ *          <crypto>.<rpc>, <crypto>.<port>,
+ *          <keystore>.<rpc>, <keystore>.<port>
  *      )
  *
  */
@@ -130,7 +134,9 @@ import <if_OS_Entropy.camkes>;
     _entropy_rpc_, \
     _entropy_port_, \
     _crypto_rpc_, \
-    _crypto_port_) \
+    _crypto_port_, \
+    _keystore_rpc_, \
+    _keystore_port_) \
     \
     connection seL4RPCCall \
         _inst_ ## _entropySource_rpc( \
@@ -151,4 +157,14 @@ import <if_OS_Entropy.camkes>;
         _inst_ ## _if_Crypto_port( \
             from    _crypto_port_, \
             to      _inst_.crypto_port \
+        ); \
+    connection seL4RPCCall \
+        _inst_ ## _if_Keystore_rpc( \
+            from    _keystore_rpc_, \
+            to      _inst_.keystore_rpc \
+        ); \
+    connection seL4SharedData \
+        _inst_ ## _if_Keystore_port( \
+            from    _keystore_port_, \
+            to      _inst_.keystore_port \
         );

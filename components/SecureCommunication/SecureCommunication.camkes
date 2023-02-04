@@ -14,6 +14,7 @@ import <global-connectors.camkes>;
 
 #ifdef USE_HW_TPM
 #include "../RPi_SPI_TPM/interfaces/if_Crypto.camkes"
+#include "../RPi_SPI_TPM/interfaces/if_Keystore.camkes"
 #endif
 
 /**
@@ -47,6 +48,9 @@ import <global-connectors.camkes>;
         /* Crypto */ \
         uses    if_Crypto    crypto_rpc; \
         dataport    Buf   crypto_port; \
+        /* Keystore */ \
+        uses    if_Keystore  keystore_rpc; \
+        dataport    Buf   keystore_port; \
         \
     }
 

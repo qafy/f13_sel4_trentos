@@ -2,6 +2,7 @@
 from os.path import exists
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
+from Crypto.Hash import SHA256
 import socket
 import sys
 
@@ -43,12 +44,12 @@ def main():
                 if not data: break
 
                 # decrypt data received from clnt
-                decryptor = PKCS1_OAEP.new(SRV_PRVT_KEY)
+                decryptor = PKCS1_OAEP.new(SRV_PRVT_KEY, hashAlgo=SHA256)
                 decrypted = decryptor.decrypt(data)
                 print('Decrypted: {}'.format(decrypted))
 
                 # encrypt data received for clnt
-                encryptor = PKCS1_OAEP.new(CLNT_PUB_KEY)
+                encryptor = PKCS1_OAEP.new(CLNT_PUB_KEY, hashAlgo=SHA256)
                 encrypted = encryptor.encrypt(decrypted)
                 conn.sendall(encrypted)
 

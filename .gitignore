@@ -4,4 +4,8 @@ assignip
 buildvirtual
 simulate
 httpserver
-plat/zynq7000/*
+plat/zynq7000
+fragen.md
+copytopi
+format
+components/SecureCommunication/3rdParty

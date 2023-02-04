@@ -15,6 +15,9 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_LIST_DIR}/include
 )
 
+# Include the mbedtls project, but do not build any targets from it unless they
+# are explicitly included.
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/3rdParty/mbedtls EXCLUDE_FROM_ALL)
 
 #-------------------------------------------------------------------------------
 #
@@ -46,7 +49,6 @@ function(SecureCommunication_DeclareCAmkESComponent
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/SecureCommunication.c
         C_FLAGS
             -Wall
-            -Werror
         INCLUDES
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/include/
         LIBS
@@ -59,7 +61,10 @@ function(SecureCommunication_DeclareCAmkESComponent
             os_socket_client
             os_crypto
             os_filesystem
-            os_keystore_file
+            os_keystore_ram_fv
+            3rdparty_mbedtls_for_cert
+            3rdparty_mbedtls_for_crypto
+            3rdparty_mbedtls_for_secure_communication
     )
 
 endfunction()

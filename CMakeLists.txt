@@ -6,6 +6,9 @@
 
 cmake_minimum_required(VERSION 3.7.2)
 
+add_compile_definitions(MBEDTLS_RSA_NO_CRT)
+
+
 #-------------------------------------------------------------------------------
 os_set_config_file(
     "system_config.h"
@@ -18,6 +21,10 @@ project(demo_tum_course C)
 include("plat/${PLATFORM}/plat_nic.cmake")
 include("components/SecureCommunication/SecureCommunication.cmake")
 
+
+SdHostController_DeclareCAmkESComponent(
+    SdHostController
+)
 
 SecureCommunication_DeclareCAmkESComponent(
     SecureCommunication

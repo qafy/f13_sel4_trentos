@@ -50,7 +50,7 @@ OS_Error_t crypto_rpc_generateKey(int *size) {
     return OS_ERROR_GENERIC;
   }
 
-  *size = sizeof(WOLFTPM2_KEY);
+  *size = sizeof(WOLFTPM2_HANDLE);
   // FIXME: Can we remove this memcpy safely?
   memcpy(OS_Dataport_getBuf(c_port), (void *)&key, *size);
 
@@ -61,14 +61,14 @@ OS_Error_t crypto_rpc_encrypt(int input_size, int *output_size) {
   int tpm_rc;
   // FIXME: what is the correct output length? for OAEP?
   void *output = malloc(OS_Dataport_getSize(c_port));
-  WOLFTPM2_KEY *key = malloc(sizeof(WOLFTPM2_KEY));
+  WOLFTPM2_KEY key;
 
   // FIXME: Can we remove this memcpy safely?
-  memcpy(key, OS_Dataport_getBuf(c_port), sizeof(WOLFTPM2_KEY));
+  memcpy(&key, OS_Dataport_getBuf(c_port), sizeof(WOLFTPM2_HANDLE));
 
   tpm_rc =
-      wolfTPM2_RsaEncrypt(&dev, key, TPM_ALG_OAEP,
-                          OS_Dataport_getBuf(c_port) + sizeof(WOLFTPM2_KEY),
+      wolfTPM2_RsaEncrypt(&dev, &key, TPM_ALG_OAEP,
+                          OS_Dataport_getBuf(c_port) + sizeof(WOLFTPM2_HANDLE),
                           input_size, output, output_size);
   if (tpm_rc != TPM_RC_SUCCESS) {
     printf("wolfTPM2_RsaEncrypt failed 0x%x: %s\n", tpm_rc,
@@ -86,14 +86,14 @@ OS_Error_t crypto_rpc_decrypt(int input_size, int *output_size) {
   int tpm_rc;
   // FIXME: what is the correct output length? for OAEP?
   void *output = malloc(OS_Dataport_getSize(c_port));
-  WOLFTPM2_KEY *key = malloc(sizeof(WOLFTPM2_KEY));
+  WOLFTPM2_KEY key;
 
   // FIXME: Can we remove this memcpy safely?
-  memcpy(key, OS_Dataport_getBuf(c_port), sizeof(WOLFTPM2_KEY));
+  memcpy(&key, OS_Dataport_getBuf(c_port), sizeof(WOLFTPM2_HANDLE));
 
   tpm_rc =
-      wolfTPM2_RsaDecrypt(&dev, key, TPM_ALG_OAEP,
-                          OS_Dataport_getBuf(c_port) + sizeof(WOLFTPM2_KEY),
+      wolfTPM2_RsaDecrypt(&dev, &key, TPM_ALG_OAEP,
+                          OS_Dataport_getBuf(c_port) + sizeof(WOLFTPM2_HANDLE),
                           input_size, output, output_size);
   if (tpm_rc != TPM_RC_SUCCESS) {
     printf("wolfTPM2_RsaDecrypt failed 0x%x: %s\n", tpm_rc,

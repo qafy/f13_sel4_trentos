@@ -7,6 +7,9 @@
 
 cmake_minimum_required(VERSION 3.7.2)
 
+add_compile_definitions(MBEDTLS_RSA_NO_CRT)
+
+
 #-------------------------------------------------------------------------------
 os_set_config_file(
     "system_config.h"
@@ -20,11 +23,6 @@ option(HW_TPM "Use RPi_SPI_TPM component for hardware TPM support" OFF)
 
 include("plat/${PLATFORM}/plat_nic.cmake")
 include("components/SecureCommunication/SecureCommunication.cmake")
-
-
-SecureCommunication_DeclareCAmkESComponent(
-    SecureCommunication
-)
 
 if(HW_TPM)
     add_definitions(-DUSE_HW_TPM)
@@ -40,10 +38,18 @@ if(HW_TPM)
     )
 
 else()
+    SdHostController_DeclareCAmkESComponent(
+        SdHostController
+    )
+
     EntropySource_DeclareCAmkESComponent(
         EntropySource
     )
 endif()
+
+SecureCommunication_DeclareCAmkESComponent(
+    SecureCommunication
+)
 
 TimeServer_DeclareCAmkESComponent(
     TimeServer

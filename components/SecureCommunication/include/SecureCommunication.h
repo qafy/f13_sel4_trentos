@@ -14,13 +14,98 @@
 #include "interfaces/if_OS_Socket.h"
 #include "network/OS_SocketTypes.h"
 
-#include "OS_Crypto.h"
-#include "OS_KeystoreFile.h"
-
+#include "OS_Dataport.h"
 #include "lib_debug/Debug.h"
+
+#include "mbedtls/pk.h"
+#include "mbedtls/rsa.h"
 
 #include <camkes.h>
 
+#ifdef USE_HW_TPM
+#else
+
+#include "OS_Crypto.h"
+#include "OS_KeystoreRamFV.h"
+#include "OS_FileSystem.h"
+
+#endif
+
+#define LOAD_KEYS_FROM_FILESYSTEM 0
+#define GENERATE_KEYS 0
+
+seL4_Word
+secureCommunication_rpc_get_sender_id(void);
+
+//----------------------------------------------------------------------
+// Network
+//----------------------------------------------------------------------
+
+static const if_OS_Socket_t networkStackCtx =
+    IF_OS_SOCKET_ASSIGN(networkStack);
+
+#ifdef USE_HW_TPM
+
+#else
+//----------------------------------------------------------------------
+// Crypto
+//----------------------------------------------------------------------
+
+static const OS_Crypto_Config_t cryptoCfg = {
+    .mode = OS_Crypto_MODE_LIBRARY,
+    .entropy = IF_OS_ENTROPY_ASSIGN(
+        entropy_rpc,
+        entropy_port),
+};
+
+// key spec for key generation
+static const OS_CryptoKey_Spec_t rsa2048prvt = {
+    .type = OS_CryptoKey_SPECTYPE_BITS,
+    .key = {
+        .type = OS_CryptoKey_TYPE_RSA_PRV,
+        .params.bits = 2048,
+        .attribs = {.flags = OS_CryptoKey_FLAG_NONE,
+                    .keepLocal = true},
+    },
+};
+
+// Crypto handle
+static OS_Crypto_Handle_t hCrypto;
+// Client Keys
+static OS_CryptoKey_Handle_t hKeyClntPrvt, hKeyClntPub;
+// Server Key
+static OS_CryptoKey_Handle_t hKeySrvPub;
+
+//----------------------------------------------------------------------
+// Filesystem
+//----------------------------------------------------------------------
+
+static OS_FileSystem_Config_t cfg =
+    {
+        .type = OS_FileSystem_Type_FATFS,
+        .storage = IF_OS_STORAGE_ASSIGN(
+            sd_rpc,
+            sd_port),
+};
+
+//----------------------------------------------------------------------
+
+
+// Server Key Data
+static OS_CryptoKey_Data_t dataSrvPub;
+
+// Server Key Data
+__attribute__((unused)) static OS_CryptoKey_Data_t dataClntPub;
+
+// Client Key Data
+static OS_CryptoKey_Data_t dataClntPrvt;
+
+#endif /* USE_HW_TPM */
+
+// TODO guard with mutex
+static bool initState = false;
+
+// interface methods for OS_Crypto
 OS_Error_t
 secureCommunication_rpc_socket_create(
     const int domain,

@@ -33,6 +33,19 @@ NetworkStack_PicoTcp_COMPONENT_DEFINE(
     NIC_DRIVER_RINGBUFFER_SIZE,
     NetworkStack_PicoTcp_NO_ADDITIONAL_INTERFACES)
 
+
+#if !defined(USE_HW_TPM)
+
+//----------------------------------------------------------------------
+// SD Card
+//----------------------------------------------------------------------
+
+#include "SdHostController/SdHostController.camkes"
+SdHostController_COMPONENT_DEFINE(SdHostController)
+SdHostController_HW_COMPONENT_DEFINE(SdHostControllerHw)
+
+#endif
+
 //----------------------------------------------------------------------
 // SecureCommunication
 //----------------------------------------------------------------------
@@ -62,6 +75,10 @@ SecureCommunication_COMPONENT_DEFINE(
         EntropySource
     )
 #endif
+
+//----------------------------------------------------------------------
+// TestApp
+//----------------------------------------------------------------------
 
 #include "components/TestApp/TestApp.camkes"
 
@@ -124,7 +141,26 @@ assembly {
             secureCommunication.crypto_rpc, secureCommunication.crypto_port,
             secureCommunication.keystore_rpc, secureCommunication.keystore_port
         )
+
     #else
+
+        //----------------------------------------------------------------------
+        // Sd Card Component
+        //----------------------------------------------------------------------
+
+        component SdHostController sdHostController;
+        component SdHostControllerHw sdHostControllerHw;
+
+        SdHostController_INSTANCE_CONNECT(
+            sdHostController,
+            sdHostControllerHw
+        )
+
+        SdHostController_INSTANCE_CONNECT_CLIENT(
+            sdHostController,
+            secureCommunication.sd_rpc, secureCommunication.sd_port
+        )
+
         //----------------------------------------------------------------------
         // EntropySource Component
         //----------------------------------------------------------------------
@@ -170,6 +206,14 @@ assembly {
         TimeServer_CLIENT_ASSIGN_BADGES(
             EXERCISE_DEMO_NIC_TIMESERVER_CLIENTS(nwDriver)
             nwStack.timeServer_rpc
+        )
+
+        SdHostController_INSTANCE_CONFIGURE(
+            sdHostController
+        )
+
+        SdHostController_HW_INSTANCE_CONFIGURE(
+            sdHostControllerHw
         )
     #endif
 

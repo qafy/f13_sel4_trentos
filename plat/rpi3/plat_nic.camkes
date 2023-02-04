@@ -6,12 +6,15 @@
 
 #pragma once
 
+//----------------------------------------------------------------------
+// Network Driver
+//----------------------------------------------------------------------
+
 #include "NIC_RPi/NIC_RPi.camkes"
 
 NIC_RPi_Mailbox_COMPONENT_DEFINE(NIC_RPi_Mailbox)
 NIC_RPi_USB_COMPONENT_DEFINE(NIC_RPi_USB)
 NIC_RPi_COMPONENT_DEFINE(NIC_RPi, NIC_DRIVER_RINGBUFFER_SIZE)
-
 
 // Create a RPi3 NIC driver instance.
 #define EXERCISE_DEMO_NIC_INSTANCE(_nic_) \
@@ -33,3 +36,5 @@ NIC_RPi_COMPONENT_DEFINE(NIC_RPi, NIC_DRIVER_RINGBUFFER_SIZE)
     NIC_RPi_Mailbox_INSTANCE_CONFIGURE_SELF(nic_mailbox) \
     NIC_RPi_USB_INSTANCE_CONFIGURE_SELF(nic_usb) \
     NIC_RPi_INSTANCE_CONFIGURE(_nic_, 40*4096)
+
+

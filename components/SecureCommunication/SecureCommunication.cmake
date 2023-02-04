@@ -15,7 +15,6 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_LIST_DIR}/include
 )
 
-
 #-------------------------------------------------------------------------------
 #
 # Declare SecureCommunication CAmkES Component
@@ -49,15 +48,21 @@ function(SecureCommunication_DeclareCAmkESComponent
             lib_server
             os_core_api
             os_socket_client
+            # os_crypto is needed for mbedtls
             os_crypto
-            os_filesystem
-            os_keystore_file
+            3rdparty_mbedtls_for_cert
+            3rdparty_mbedtls_for_crypto
     )
 
     if(HW_TPM)
         list(APPEND SECURE_COMMUNICATION_LIBS
             tpm_crypto
             tpm_keystore
+        )
+    else()
+        list(APPEND SECURE_COMMUNICATION_LIBS
+            os_filesystem
+            os_keystore_ram_fv
         )
     endif()
 

@@ -33,6 +33,10 @@ OS_Error_t TPM_Crypto_encrypt(const TPM_Crypto_Handle_t *ctx, void *key,
   memcpy(OS_Dataport_getBuf(ctx->dataport) + key_size, input, input_size);
 
   rc = ctx->encrypt(input_size, output_size);
+  if (rc != OS_SUCCESS) {
+    *output_size = 0;
+    return rc;
+  }
 
   memcpy(output, OS_Dataport_getBuf(ctx->dataport), *output_size);
 
@@ -49,6 +53,10 @@ OS_Error_t TPM_Crypto_decrypt(const TPM_Crypto_Handle_t *ctx, void *key,
   memcpy(OS_Dataport_getBuf(ctx->dataport) + key_size, input, input_size);
 
   rc = ctx->decrypt(input_size, output_size);
+  if (rc != OS_SUCCESS) {
+    *output_size = 0;
+    return rc;
+  }
 
   memcpy(output, OS_Dataport_getBuf(ctx->dataport), *output_size);
 

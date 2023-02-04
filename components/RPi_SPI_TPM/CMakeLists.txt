@@ -39,6 +39,7 @@ function(RPi_SPI_TPM_DeclareCAmkESComponent name)
     # wolfSSL
     set(WITH_WOLFSSL_TREE ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/3rdParty/wolfSSL)
     set(WOLFSSL_DEBUG "no")
+    set(WOLFSSL_RSA "yes")
     set(WOLFSSL_SINGLE_THREADED "yes")
 
     # wolfTPM
@@ -64,6 +65,8 @@ function(RPi_SPI_TPM_DeclareCAmkESComponent name)
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/3rdParty/bcm2837/bcm2837_gpio.c
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/3rdParty/bcm2837/bcm2837_spi.c
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/RPi_SPI_TPM.c
+            ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/crypto_rpc.c
+            ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/tpm_int.c
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/tpm_io.c
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/util.c
         INCLUDES
@@ -75,8 +78,29 @@ function(RPi_SPI_TPM_DeclareCAmkESComponent name)
         LIBS
             os_core_api
             lib_debug
+            system_config
             wolftpm
             ${RPi_SPI_TPM_LIBS}
     )
 
 endfunction()
+
+#------------------------------------------------------------------------------
+
+set(TPM_CRYPTO_SOURCES
+    "${CMAKE_CURRENT_LIST_DIR}/libs/tpm_crypto/src/crypto.c"
+)
+
+project(tpm_crypto C)
+
+add_library(${PROJECT_NAME} INTERFACE)
+
+target_sources(${PROJECT_NAME}
+    INTERFACE
+        ${TPM_CRYPTO_SOURCES}
+)
+
+target_include_directories(${PROJECT_NAME}
+    INTERFACE
+        "${CMAKE_CURRENT_LIST_DIR}/libs/tpm_crypto/include"
+)

@@ -24,6 +24,8 @@
 import <std_connector.camkes>;
 import <if_OS_Entropy.camkes>;
 
+#include "interfaces/if_Crypto.camkes"
+
 //------------------------------------------------------------------------------
 
 
@@ -65,6 +67,8 @@ import <if_OS_Entropy.camkes>;
         consumes  TimerReady                 timeServer_notify; \
         provides  if_OS_Entropy              entropy_rpc; \
         dataport  Buf                        entropy_port; \
+        provides  if_Crypto                  crypto_rpc; \
+        dataport  Buf                        crypto_port; \
         dataport  Buf(RPI_SPI_TPM_HW_BCM2837_DATAPORT_SIZE)  regBase; \
     }
 
@@ -116,22 +120,35 @@ import <if_OS_Entropy.camkes>;
  *
  *      RPi_SPI_TPM_INSTANCE_CONNECT_CLIENT(
  *          <instance>,
- *          <entropy>.<rpc>, <entropy>.<port>
+ *          <entropy>.<rpc>, <entropy>.<port>,
+ *          <crypto>.<rpc>, <crypto>.<port>
  *      )
  *
  */
 #define RPi_SPI_TPM_INSTANCE_CONNECT_CLIENT( \
     _inst_, \
-    _rpc_, \
-    _port_) \
+    _entropy_rpc_, \
+    _entropy_port_, \
+    _crypto_rpc_, \
+    _crypto_port_) \
     \
     connection seL4RPCCall \
         _inst_ ## _entropySource_rpc( \
-            from    _rpc_, \
+            from    _entropy_rpc_, \
             to      _inst_.entropy_rpc \
         ); \
     connection seL4SharedData \
         _inst_ ## _entropySource_port( \
-            from    _port_, \
+            from    _entropy_port_, \
             to      _inst_.entropy_port \
+        ); \
+    connection seL4RPCCall \
+        _inst_ ## _if_Crypto_rpc( \
+            from    _crypto_rpc_, \
+            to      _inst_.crypto_rpc \
+        ); \
+    connection seL4SharedData \
+        _inst_ ## _if_Crypto_port( \
+            from    _crypto_port_, \
+            to      _inst_.crypto_port \
         );

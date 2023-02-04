@@ -8,6 +8,7 @@
  * Code adapted from:
  *  - TRENTOS RPi_SPI_Flash component
  *  - TRENTOS EntropySource component
+ *  - wolfTPM examples/wrap/wrap_test.c (https://github.com/wolfSSL/wolfTPM/blob/master/examples/wrap/wrap_test.c)
  */
 
 #include "OS_Dataport.h"
@@ -27,9 +28,8 @@
 #include <wolftpm/tpm2.h>
 #include <wolftpm/tpm2_wrap.h>
 
+#include "RPi_SPI_TPM.h"
 #include "util.h"
-
-WOLFTPM2_DEV dev;
 
 void tpm_init(void) {
   int rc;

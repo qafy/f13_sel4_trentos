@@ -41,15 +41,7 @@ function(SecureCommunication_DeclareCAmkESComponent
     )
 
     #---------------------------------------------------------------------------
-    DeclareCAmkESComponent(${name}
-        SOURCES
-            ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/SecureCommunication.c
-        C_FLAGS
-            -Wall
-            -Werror
-        INCLUDES
-            ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/include/
-        LIBS
+    set(SECURE_COMMUNICATION_LIBS
             picotcp
             system_config
             lib_debug
@@ -60,6 +52,24 @@ function(SecureCommunication_DeclareCAmkESComponent
             os_crypto
             os_filesystem
             os_keystore_file
+    )
+
+    if(HW_TPM)
+        list(APPEND SECURE_COMMUNICATION_LIBS
+            tpm_crypto
+        )
+    endif()
+
+    DeclareCAmkESComponent(${name}
+        SOURCES
+            ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/SecureCommunication.c
+        C_FLAGS
+            -Wall
+            -Werror
+        INCLUDES
+            ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/include/
+        LIBS
+            ${SECURE_COMMUNICATION_LIBS}
     )
 
 endfunction()

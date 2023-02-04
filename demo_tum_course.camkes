@@ -48,7 +48,7 @@ SecureCommunication_COMPONENT_DEFINE(
     // TPM Driver
     //----------------------------------------------------------------------
 
-    #include "components/RPi_SPI_TPM/RPi_SPI_TPM.camkes";
+    #include "components/RPi_SPI_TPM/RPi_SPI_TPM.camkes"
 
     RPi_SPI_TPM_COMPONENT_DEFINE(RPi_SPI_TPM)
     RPi_SPI_TPM_HW_COMPONENT_DEFINE(RPi_SPI_TPM_HW)
@@ -120,7 +120,8 @@ assembly {
 
         RPi_SPI_TPM_INSTANCE_CONNECT_CLIENT(
             tpm,
-            secureCommunication.entropy_rpc, secureCommunication.entropy_port
+            secureCommunication.entropy_rpc, secureCommunication.entropy_port,
+            secureCommunication.crypto_rpc, secureCommunication.crypto_port
         )
     #else
         //----------------------------------------------------------------------

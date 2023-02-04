@@ -12,6 +12,9 @@ import <global-connectors.camkes>;
 #include <if_OS_Socket.camkes>
 #include <if_OS_Entropy.camkes>
 
+#ifdef USE_HW_TPM
+#include "../RPi_SPI_TPM/interfaces/if_Crypto.camkes"
+#endif
 
 /**
  * Defines a secure communication component.
@@ -23,6 +26,32 @@ import <global-connectors.camkes>;
  *                             meant not to be an instance name but rather a
  *                             'type' name.
  */
+#ifdef USE_HW_TPM
+
+#define SecureCommunication_COMPONENT_DEFINE( \
+    name \
+    ) \
+    \
+    component name \
+    { \
+        control; \
+        \
+        /*------------------------------------------------------------------*/ \
+        /* interface to application */ \
+        IF_OS_SOCKET_PROVIDE(secureCommunication) \
+        /* Networking */ \
+        IF_OS_SOCKET_USE(networkStack) \
+        /* Entropy */\
+        uses    if_OS_Entropy   entropy_rpc; \
+        dataport    Buf   entropy_port; \
+        /* Crypto */ \
+        uses    if_Crypto    crypto_rpc; \
+        dataport    Buf   crypto_port; \
+        \
+    }
+
+#else
+
 #define SecureCommunication_COMPONENT_DEFINE( \
     name \
     ) \
@@ -41,6 +70,8 @@ import <global-connectors.camkes>;
         dataport    Buf   entropy_port; \
         \
     }
+
+#endif /* USE_HW_TPM */
 
 
  /**

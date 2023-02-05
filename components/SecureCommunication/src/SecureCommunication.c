@@ -5,17 +5,14 @@
  */
 #include "SecureCommunication.h"
 
-
 static OS_Error_t
 encryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 {
     OS_Error_t res;
-    Debug_LOG_INFO("Unencrypted message: %s", (char *)input);
-    Debug_LOG_INFO("Lenght of input %d", inputLen);
-
+    
 #ifdef USE_HW_TPM
 
-    (void) res;
+    (void)res;
 
 #else
 
@@ -47,7 +44,7 @@ decryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 
 #ifdef USE_HW_TPM
 
-    (void) res;
+    (void)res;
 
 #else
 
@@ -79,7 +76,7 @@ generateKeys()
 
 #ifdef USE_HW_TPM
 
-    (void) res;
+    (void)res;
 
 #else
 
@@ -90,7 +87,7 @@ generateKeys()
     OS_FileSystem_init(&hFs, &cfg);
     OS_FileSystem_mount(hFs);
 
-    size_t outputLen = 2048;
+    size_t outputLen = 4096;
     void *outputBuf = malloc(outputLen);
     if (!outputBuf)
     {
@@ -104,7 +101,7 @@ generateKeys()
     res = OS_CryptoKey_generate(&hKeyClntPrvt, hCrypto, &rsa2048prvt);
     if (res != OS_SUCCESS)
     {
-        Debug_LOG_ERROR("Failed to generate clnt_prvt key");
+        Debug_LOG_ERROR("Failed to generate clnt_prvt key, err %d", res);
         return res;
     }
 
@@ -115,7 +112,7 @@ generateKeys()
     res = OS_CryptoKey_makePublic(&hKeyClntPub, hCrypto, hKeyClntPrvt, &attr);
     if (res != OS_SUCCESS)
     {
-        Debug_LOG_ERROR("Failed to generate clnt_pub key");
+        Debug_LOG_ERROR("Failed to generate clnt_pub key, err %d", res);
         return res;
     }
 
@@ -123,65 +120,108 @@ generateKeys()
     res = OS_CryptoKey_export(hKeyClntPrvt, &dataClntPrvt);
     if (res != OS_SUCCESS)
     {
-        Debug_LOG_ERROR("Failed to export clnt_prvt key");
+        Debug_LOG_ERROR("Failed to export clnt_prvt key, err %d", res);
+        return res;
     }
     OS_CryptoKey_free(hKeyClntPrvt);
 
     res = OS_CryptoKey_export(hKeyClntPub, &dataClntPub);
     if (res != OS_SUCCESS)
     {
-        Debug_LOG_ERROR("Failed to export clnt_pub key");
+        Debug_LOG_ERROR("Failed to export clnt_pub key, err %d", res);
+        return res;
     }
     OS_CryptoKey_free(hKeyClntPub);
 
+    // convert clnt_prvt to PEM
     mbedtls_pk_context pkcontext;
     mbedtls_pk_init(&pkcontext);
     mbedtls_pk_setup(&pkcontext, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
 
     mbedtls_rsa_context *rsacontext = mbedtls_pk_rsa(pkcontext);
+    mbedtls_rsa_init(rsacontext, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256);
+    res = mbedtls_rsa_import_raw(rsacontext,
+                                 dataClntPrvt.data.rsa.prv.nBytes,
+                                 dataClntPrvt.data.rsa.prv.nLen,
+                                 dataClntPrvt.data.rsa.prv.pBytes,
+                                 dataClntPrvt.data.rsa.prv.pLen,
+                                 dataClntPrvt.data.rsa.prv.qBytes,
+                                 dataClntPrvt.data.rsa.prv.qLen,
+                                 dataClntPrvt.data.rsa.prv.dBytes,
+                                 dataClntPrvt.data.rsa.prv.dLen,
+                                 dataClntPrvt.data.rsa.pub.eBytes,
+                                 dataClntPrvt.data.rsa.pub.eLen);
+    if (res)
+    {
+        Debug_LOG_ERROR("Failed to import into mbedtls, err %d", res);
+        return OS_ERROR_GENERIC;
+    }
+
+    res = mbedtls_pk_write_key_pem(&pkcontext, outputBuf, outputLen);
+    if (res)
+    {
+        Debug_LOG_ERROR("Failed to convert to PEM, err %d", res);
+        return OS_ERROR_GENERIC;
+    }
+    Debug_LOG_INFO("clnt_prvt length %d: %s", strlen(outputBuf), (char *)outputBuf);
+
+    // write PEM to Filesystem
+    res = OS_FileSystemFile_open(hFs, &hKeyFile, "clnt_prvt.pem",
+                                 OS_FileSystem_OpenMode_RDWR, OS_FileSystem_OpenFlags_CREATE);
+    if (res != OS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Can not open clnt_prvt.pem, err %d", res);
+        return res;
+    }
+    res = OS_FileSystemFile_write(hFs, hKeyFile, 0, strlen(outputBuf) + 1, outputBuf);
+    if (res != OS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Can not write clnt_prvt.pem, err %d", res);
+        return res;
+    }
+    OS_FileSystemFile_close(hFs, hKeyFile);
+    mbedtls_pk_free(&pkcontext);
+
+    // convert public key to PEM
+    mbedtls_pk_init(&pkcontext);
+    mbedtls_pk_setup(&pkcontext, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
+
+    rsacontext = mbedtls_pk_rsa(pkcontext);
     mbedtls_rsa_import_raw(rsacontext,
                            dataClntPub.data.rsa.pub.nBytes,
                            dataClntPub.data.rsa.pub.nLen,
                            NULL, 0, NULL, 0, NULL, 0,
                            dataClntPub.data.rsa.pub.eBytes,
                            dataClntPub.data.rsa.pub.eLen);
-    mbedtls_rsa_complete(rsacontext);
-    res = mbedtls_rsa_check_pubkey(rsacontext);
     if (res)
     {
-        Debug_LOG_ERROR("No valid key, err %d", res);
+        Debug_LOG_ERROR("Failed to import into mbedtls, err %d", res);
+        return OS_ERROR_GENERIC;
     }
 
-    // mbedtls_pk_write_key_pem(pkcontext, outputBuf, outputLen);
+    res = mbedtls_pk_write_pubkey_pem(&pkcontext, outputBuf, outputLen);
+    if (res)
+    {
+        Debug_LOG_ERROR("Failed to convert to PEM, err %d", res);
+        return OS_ERROR_GENERIC;
+    }
 
+    Debug_LOG_INFO("clnt_pub: %s", (char *)outputBuf);
+
+    // write PEM to Filesystem
     OS_FileSystemFile_open(hFs, &hKeyFile, "clnt_pub.pem",
                            OS_FileSystem_OpenMode_RDWR, OS_FileSystem_OpenFlags_CREATE);
-    OS_FileSystemFile_write(hFs, hKeyFile, 0, strlen(outputBuf) + 1, outputBuf);
-    OS_FileSystemFile_close(hFs, hKeyFile);
-    mbedtls_pk_free(&pkcontext);
-
-    mbedtls_pk_init(&pkcontext);
-    mbedtls_pk_setup(&pkcontext, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
-
-    rsacontext = mbedtls_pk_rsa(pkcontext);
-    mbedtls_rsa_import_raw(rsacontext,
-                           dataClntPrvt.data.rsa.pub.nBytes,
-                           dataClntPrvt.data.rsa.pub.nLen,
-                           NULL, 0, NULL, 0, NULL, 0,
-                           dataClntPrvt.data.rsa.pub.eBytes,
-                           dataClntPrvt.data.rsa.pub.eLen);
-    mbedtls_rsa_complete(rsacontext);
-    res = mbedtls_rsa_check_pubkey(rsacontext);
-    if (res)
+    if (res != OS_SUCCESS)
     {
-        Debug_LOG_ERROR("No valid key, err %d", res);
+        Debug_LOG_ERROR("Can not open clnt_pub.pem, err %d", res);
+        return res;
     }
-
-    // mbedtls_pk_write_key_pem(pkcontext, outputBuf, outputLen);
-
-    OS_FileSystemFile_open(hFs, &hKeyFile, "clnt_prvt.pem",
-                           OS_FileSystem_OpenMode_RDWR, OS_FileSystem_OpenFlags_CREATE);
     OS_FileSystemFile_write(hFs, hKeyFile, 0, strlen(outputBuf) + 1, outputBuf);
+    if (res != OS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Can not write clnt_pub.pem, err %d", res);
+        return res;
+    }
     OS_FileSystemFile_close(hFs, hKeyFile);
     mbedtls_pk_free(&pkcontext);
 
@@ -199,6 +239,7 @@ generateKeys()
 __attribute__((unused)) static OS_Error_t
 loadKeysFromFilesystem(char **pub, char **prv)
 {
+    Debug_LOG_INFO("Reading key from filesystem");
 
     // Filesystem init
     OS_Error_t res;
@@ -208,48 +249,62 @@ loadKeysFromFilesystem(char **pub, char **prv)
 
     OS_FileSystemFile_Handle_t hKeyFile;
     off_t fileSize = 4096;
-    OS_FileSystemFile_getSize(hFs, "srv_pub.pem", &fileSize);
+    res = OS_FileSystemFile_getSize(hFs, "srv_pub.pem", &fileSize);
+    if (res != OS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Can not get size from file, err %d", res);
+        return res;
+    }
 
     void *buf = malloc(fileSize);
     if (!buf)
     {
         Debug_LOG_ERROR("Can not allocate Memory");
+        return OS_ERROR_GENERIC;
     }
-
-    Debug_LOG_INFO("Reading public key from file srv_pub.pem");
 
     res = OS_FileSystemFile_open(hFs, &hKeyFile, "srv_pub.pem",
                                  OS_FileSystem_OpenMode_RDONLY, OS_FileSystem_OpenFlags_NONE);
     if (res != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Error while opning clnt_prvt, err %d", res);
+        return res;
     }
 
     res = OS_FileSystemFile_read(hFs, hKeyFile, 0, fileSize, buf);
     if (res != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Error while reading Private Key from File system, err %d", res);
+        return res;
     }
     OS_FileSystemFile_close(hFs, hKeyFile);
 
     *pub = buf;
 
-    OS_FileSystemFile_getSize(hFs, "clnt_prvt.pem", &fileSize);
+    res = OS_FileSystemFile_getSize(hFs, "clnt_prvt.pem", &fileSize);
+    if (res != OS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Can not get size from file, err %d", res);
+        return res;
+    }
     buf = malloc(fileSize);
     if (!buf)
     {
         Debug_LOG_ERROR("Can not allocate Memory");
+        return OS_ERROR_GENERIC;
     }
     res = OS_FileSystemFile_open(hFs, &hKeyFile, "clnt_prvt.pem",
                                  OS_FileSystem_OpenMode_RDONLY, OS_FileSystem_OpenFlags_NONE);
     if (res != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Error while opning clnt_prvt, err %d", res);
+        return res;
     }
     res = OS_FileSystemFile_read(hFs, hKeyFile, 0, fileSize, buf);
     if (res != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Error while reading Private Key from File system, err %d", res);
+        return res;
     }
     OS_FileSystemFile_close(hFs, hKeyFile);
 
@@ -291,9 +346,16 @@ loadKeys()
     if (res)
     {
         Debug_LOG_ERROR("Can not parse key, err %d", res);
+        return res;
     }
 
     mbedtls_rsa_context *srvPubRsa = mbedtls_pk_rsa(srvPubPem);
+    res = mbedtls_rsa_check_pubkey(srvPubRsa);
+    if (res)
+    {
+        Debug_LOG_ERROR("RSA public key has wrong format, err %d", res);
+        return OS_ERROR_GENERIC;
+    }
 
     dataSrvPub = (OS_CryptoKey_Data_t){
         .type = OS_CryptoKey_TYPE_RSA_PUB,
@@ -311,6 +373,7 @@ loadKeys()
     if (res)
     {
         Debug_LOG_ERROR("Can not export key, err %d", res);
+        return OS_ERROR_GENERIC;
     }
 
     dataSrvPub.data.rsa.pub.eLen = 3;
@@ -323,13 +386,19 @@ loadKeys()
     res = mbedtls_pk_parse_key(&clntPrvtPem,
                                (const unsigned char *)privateKey,
                                strlen(privateKey) + 1, NULL, 0);
-
     if (res)
     {
         Debug_LOG_ERROR("Can not parse private key, err %d", res);
+        return OS_ERROR_GENERIC;
     }
 
     mbedtls_rsa_context *clntPrvtRsa = mbedtls_pk_rsa(clntPrvtPem);
+    res = mbedtls_rsa_check_pubkey(clntPrvtRsa);
+    if (res)
+    {
+        Debug_LOG_ERROR("RSA private key has wrong format, err %d", res);
+        return OS_ERROR_GENERIC;
+    }
 
     dataClntPrvt = (OS_CryptoKey_Data_t){
         .type = OS_CryptoKey_TYPE_RSA_PRV,
@@ -348,6 +417,7 @@ loadKeys()
     if (res)
     {
         Debug_LOG_ERROR("Can not export private key, err %d", res);
+        return OS_ERROR_GENERIC;
     }
 
     dataClntPrvt.data.rsa.prv.nLen = 256;
@@ -369,15 +439,21 @@ loadKeys()
     if (!keystoreBuffer)
     {
         Debug_LOG_ERROR("Can not allocate enough memory for keystoreBuffer");
+        return OS_ERROR_GENERIC;
     }
     OS_Keystore_Handle_t hKeys;
-    OS_KeystoreRamFV_init(&hKeys, keystoreBuffer, KEYSTORE_RAM_BUF_SIZE);
-
+    res = OS_KeystoreRamFV_init(&hKeys, keystoreBuffer, KEYSTORE_RAM_BUF_SIZE);
+    if (res != OS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Can not initialize keystoreRamFv, err %d", res);
+        return res;
+    }
     // store server key in keystore
     res = OS_Keystore_storeKey(hKeys, "srv_pub", &dataSrvPub, sizeof(dataSrvPub));
     if (res != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Failed to store srv_pub key, err %d", res);
+        return res;
     }
 
     // store client key in keystore
@@ -385,6 +461,7 @@ loadKeys()
     if (res != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Failed to store clnt_prvt key, err %d", res);
+        return res;
     }
 
     len = sizeof(OS_CryptoKey_Data_t);
@@ -393,6 +470,7 @@ loadKeys()
     if (res != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Can not load srv_pub, err %d", res);
+        return res;
     }
 
     len = sizeof(OS_CryptoKey_Data_t);
@@ -401,6 +479,7 @@ loadKeys()
     if (res != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Can not load clnt_prvt, err %d", res);
+        return res;
     }
     OS_Keystore_free(hKeys);
 
@@ -495,6 +574,7 @@ secureCommunication_rpc_socket_accept(
     if (res != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Error while accepting");
+        return res;
     }
     *pClient_handle = pClient_handle2.handleID;
     return res;
@@ -505,7 +585,11 @@ secureCommunication_rpc_socket_write(
     const int handle,
     size_t *const pLen)
 {
-    size_t expectedLen = *pLen > 256 ? 256 : *pLen;
+    Debug_LOG_INFO("Socket write");
+    OS_Error_t res;
+    // for length of encrypted message see this post
+    // https://crypto.stackexchange.com/questions/42097/what-is-the-maximum-size-of-the-plaintext-message-for-rsa-oaep/42100#42100
+    size_t expectedLen = *pLen > 190 ? 190 : *pLen;
 
     // get buffers for encryption
     uint8_t *buf =
@@ -515,73 +599,34 @@ secureCommunication_rpc_socket_write(
     if (!encryptedBuf)
     {
         Debug_LOG_ERROR("Unable to allocate memory");
-        return -1;
+        return OS_ERROR_GENERIC;
     }
 
-    encryptBuffer(buf, expectedLen, encryptedBuf, &encryptedLen);
+    res = encryptBuffer(buf, expectedLen, encryptedBuf, &encryptedLen);
+    if (res != OS_SUCCESS)
+    {
+        free(encryptedBuf);
+        return res;
+    }
 
     size_t sentLen = 0;
     // send encrypted data
     OS_Socket_Handle_t handle2 = {.ctx = networkStackCtx, .handleID = handle};
-    OS_Error_t res = OS_Socket_write(handle2, encryptedBuf, encryptedLen, &sentLen);
+    res = OS_Socket_write(handle2, encryptedBuf, encryptedLen, &sentLen);
+    if (res != OS_SUCCESS)
+    {
+        free(encryptedBuf);
+        return res;
+    }
 
     if (sentLen != encryptedLen)
     {
         Debug_LOG_ERROR("Sent data is not a full encrypted block");
-    }
-    *pLen = expectedLen;
-    Debug_LOG_INFO("Actual length that socket wrote %d", *pLen);
-    Debug_LOG_INFO("Socket wrote %s", (char *)encryptedBuf);
-    free(encryptedBuf);
-    return res;
-}
-
-OS_Error_t
-secureCommunication_rpc_socket_read(
-    const int handle,
-    size_t *const pLen)
-{
-
-    OS_Error_t res;
-
-    if (*pLen == 0)
-    {
-        return OS_SUCCESS;
-    }
-    // for length of encrypted message see this post
-    // https://crypto.stackexchange.com/questions/42097/what-is-the-maximum-size-of-the-plaintext-message-for-rsa-oaep/42100#42100
-
-    // get buffers for decryption
-    uint8_t *buf =
-        secureCommunication_rpc_buf(secureCommunication_rpc_get_sender_id());
-    void *encryptedBuf = malloc(OS_DATAPORT_DEFAULT_SIZE);
-    if (!encryptedBuf)
-    {
-        Debug_LOG_ERROR("Unable to allocate memory");
-        return -1;
-    }
-    size_t encryptedLen = 0;
-    OS_Socket_Handle_t handle2 = {.ctx = networkStackCtx, .handleID = handle};
-    do
-    {
-        res = OS_Socket_read(handle2, encryptedBuf, 256, &encryptedLen);
-        Debug_LOG_WARNING("OS_Socket_read() reported try again");
-        seL4_Yield();
-    } while (res == OS_ERROR_TRY_AGAIN);
-
-    if (res != OS_SUCCESS)
-    {
-        Debug_LOG_ERROR("Error while reading from socket, err %d", res);
         free(encryptedBuf);
-        return res;
+        return OS_ERROR_GENERIC;
     }
-    Debug_LOG_INFO("Got %d bytes", encryptedLen);
 
-    size_t decryptedLen = 256;
-    decryptBuffer(encryptedBuf, 256, buf, &decryptedLen);
-
-    *pLen = decryptedLen;
-    Debug_LOG_INFO("Socket with buf size %d read %s", *pLen, buf);
+    *pLen = expectedLen;
     free(encryptedBuf);
     return res;
 }
@@ -593,14 +638,109 @@ secureCommunication_rpc_socket_sendto(
     const OS_Socket_Addr_t *const dstAddr)
 {
     Debug_LOG_INFO("Socket sendto");
+    OS_Error_t res;
+    // for length of encrypted message see this post
+    // https://crypto.stackexchange.com/questions/42097/what-is-the-maximum-size-of-the-plaintext-message-for-rsa-oaep/42100#42100
+    size_t expectedLen = *pLen > 190 ? 190 : *pLen;
 
+    // get buffers for encryption
     uint8_t *buf =
         secureCommunication_rpc_buf(secureCommunication_rpc_get_sender_id());
+    size_t encryptedLen = 256;
+    void *encryptedBuf = malloc(encryptedLen);
+    if (!encryptedBuf)
+    {
+        Debug_LOG_ERROR("Unable to allocate memory");
+        return OS_ERROR_GENERIC;
+    }
 
+    res = encryptBuffer(buf, expectedLen, encryptedBuf, &encryptedLen);
+    if (res != OS_SUCCESS)
+    {
+        free(encryptedBuf);
+        return res;
+    }
+
+    size_t sentLen = 0;
+    // send encrypted data
     OS_Socket_Handle_t handle2 = {.ctx = networkStackCtx, .handleID = handle};
+    res = OS_Socket_sendto(handle2, encryptedBuf, encryptedLen, &sentLen, dstAddr);
+    if (res != OS_SUCCESS)
+    {
+        free(encryptedBuf);
+        return res;
+    }
 
-    size_t length = *pLen;
-    return OS_Socket_sendto(handle2, (void *)buf, length, pLen, dstAddr);
+    if (sentLen != encryptedLen)
+    {
+        Debug_LOG_ERROR("Sent data is not a full encrypted block");
+        free(encryptedBuf);
+        return OS_ERROR_GENERIC;
+    }
+
+    *pLen = expectedLen;
+    free(encryptedBuf);
+    return res;
+}
+
+OS_Error_t
+secureCommunication_rpc_socket_read(
+    const int handle,
+    size_t *const pLen)
+{
+
+    Debug_LOG_INFO("Socket read");
+    OS_Error_t res;
+
+    if (*pLen == 0)
+    {
+        return OS_SUCCESS;
+    }
+
+    // get buffers for decryption
+    uint8_t *buf =
+        secureCommunication_rpc_buf(secureCommunication_rpc_get_sender_id());
+    size_t encryptedLen = 256;
+    void *encryptedBuf = malloc(encryptedLen);
+    if (!encryptedBuf)
+    {
+        Debug_LOG_ERROR("Unable to allocate memory");
+        return OS_ERROR_GENERIC;
+    }
+
+    size_t recvLen = 0;
+    OS_Socket_Handle_t handle2 = {.ctx = networkStackCtx, .handleID = handle};
+    do
+    {
+        res = OS_Socket_read(handle2, encryptedBuf, 256, &recvLen);
+        Debug_LOG_WARNING("OS_Socket_read() reported try again");
+        seL4_Yield();
+    } while (res == OS_ERROR_TRY_AGAIN);
+
+    if (res != OS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Error while reading from socket, err %d", res);
+        free(encryptedBuf);
+        return res;
+    }
+    if (recvLen != encryptedLen)
+    {
+        Debug_LOG_ERROR("Sent data is not a full encrypted block");
+        free(encryptedBuf);
+        return OS_ERROR_GENERIC;
+    }
+    size_t decryptedLen = secureCommunication_rpc_buf_size(
+        secureCommunication_rpc_get_sender_id());
+    res = decryptBuffer(encryptedBuf, encryptedLen, buf, &decryptedLen);
+    if (res != OS_SUCCESS)
+    {
+        free(encryptedBuf);
+        return res;
+    }
+
+    *pLen = decryptedLen;
+    free(encryptedBuf);
+    return res;
 }
 
 OS_Error_t
@@ -610,15 +750,56 @@ secureCommunication_rpc_socket_recvfrom(
     OS_Socket_Addr_t *const srcAddr)
 {
     Debug_LOG_INFO("Socket recvfrom");
+    OS_Error_t res;
 
+    if (*pLen == 0)
+    {
+        return OS_SUCCESS;
+    }
+
+    // get buffers for decryption
     uint8_t *buf =
         secureCommunication_rpc_buf(secureCommunication_rpc_get_sender_id());
+    size_t encryptedLen = 256;
+    void *encryptedBuf = malloc(encryptedLen);
+    if (!encryptedBuf)
+    {
+        Debug_LOG_ERROR("Unable to allocate memory");
+        return OS_ERROR_GENERIC;
+    }
 
+    size_t recvLen = 0;
     OS_Socket_Handle_t handle2 = {.ctx = networkStackCtx, .handleID = handle};
+    do
+    {
+        res = OS_Socket_recvfrom(handle2, encryptedBuf, 256, &recvLen, srcAddr);
+        Debug_LOG_WARNING("OS_Socket_read() reported try again");
+        seL4_Yield();
+    } while (res == OS_ERROR_TRY_AGAIN);
 
-    size_t length = *pLen;
-    OS_Error_t res = OS_Socket_recvfrom(handle2, (void *)buf, length, pLen, srcAddr);
+    if (res != OS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Error while reading from socket, err %d", res);
+        free(encryptedBuf);
+        return res;
+    }
+    if (recvLen != encryptedLen)
+    {
+        Debug_LOG_ERROR("Sent data is not a full encrypted block");
+        free(encryptedBuf);
+        return OS_ERROR_GENERIC;
+    }
+    size_t decryptedLen = secureCommunication_rpc_buf_size(
+        secureCommunication_rpc_get_sender_id());
+    res = decryptBuffer(encryptedBuf, encryptedLen, buf, &decryptedLen);
+    if (res != OS_SUCCESS)
+    {
+        free(encryptedBuf);
+        return res;
+    }
 
+    *pLen = decryptedLen;
+    free(encryptedBuf);
     return res;
 }
 
@@ -626,10 +807,10 @@ OS_NetworkStack_State_t
 secureCommunication_rpc_socket_getStatus(
     void)
 {
-    if (initState)
+    if (initState == RUNNING)
         return OS_Socket_getStatus(&networkStackCtx);
-
-    return false;
+    else
+        return initState;
 }
 
 OS_Error_t
@@ -650,26 +831,38 @@ secureCommunication_rpc_socket_getPendingEvents(
 
 int run()
 {
+    OS_Error_t res;
     Debug_LOG_INFO("Initializing Secure Communication component");
-
-    if (0 != OS_SUCCESS)
-    {
-        Debug_LOG_ERROR("Error while initializing Crypto API");
-    }
 
 #ifndef USE_HW_TPM
     // Crypto init
-    OS_Crypto_init(&hCrypto, &cryptoCfg);
+    res = OS_Crypto_init(&hCrypto, &cryptoCfg);
+    if (res != OS_SUCCESS)
+    {
+        initState = FATAL_ERROR;
+        Debug_LOG_ERROR("Error while initializing Crypto API");
+        return res;
+    }
 #endif
 
 #if GENERATE_KEYS
-    generateKeys();
+    res = generateKeys();
+    if (res != OS_SUCCESS)
+    {
+        initState = FATAL_ERROR;
+        return res;
+    }
+
 #endif
-    loadKeys();
+    res = loadKeys();
+    if (res != OS_SUCCESS)
+    {
+        initState = FATAL_ERROR;
+        return res;
+    }
+    initState = RUNNING;
 
-    initState = true;
     // Network init
-
 #define MAX_CLIENTS_NUM 8
     static const event_notify_func_t notifications[MAX_CLIENTS_NUM] =
         {

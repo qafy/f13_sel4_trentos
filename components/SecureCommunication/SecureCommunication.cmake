@@ -40,6 +40,11 @@ function(SecureCommunication_DeclareCAmkESComponent
     )
 
     #---------------------------------------------------------------------------
+
+    # Include the mbedtls project, but do not build any targets from it unless they
+    # are explicitly included.
+    add_subdirectory(${CMAKE_CURRENT_FUNCTION_LIST_DIR}/3rdParty/mbedtls EXCLUDE_FROM_ALL)
+
     set(SECURE_COMMUNICATION_LIBS
             picotcp
             system_config
@@ -52,6 +57,7 @@ function(SecureCommunication_DeclareCAmkESComponent
             os_crypto
             3rdparty_mbedtls_for_cert
             3rdparty_mbedtls_for_crypto
+            3rdparty_mbedtls_for_secure_communication
     )
 
     if(HW_TPM)

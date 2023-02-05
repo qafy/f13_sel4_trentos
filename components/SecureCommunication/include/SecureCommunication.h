@@ -31,7 +31,7 @@
 
 #endif
 
-#define LOAD_KEYS_FROM_FILESYSTEM 0
+#define LOAD_KEYS_FROM_FILESYSTEM 1
 #define GENERATE_KEYS 0
 
 seL4_Word
@@ -102,8 +102,7 @@ static OS_CryptoKey_Data_t dataClntPrvt;
 
 #endif /* USE_HW_TPM */
 
-// TODO guard with mutex
-static bool initState = false;
+static OS_NetworkStack_State_t initState = UNINITIALIZED;
 
 // interface methods for OS_Crypto
 OS_Error_t

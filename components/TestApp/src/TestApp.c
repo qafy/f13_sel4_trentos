@@ -203,7 +203,7 @@ int run()
 
     char *request = "Hello World";
     // "GET / HTTP/1.0\r\nHost: " ETH_GATEWAY_ADDR
-      //              "\r\nConnection: close\r\n\r\n\0x0";
+    //              "\r\nConnection: close\r\n\r\n\0x0";
 
         
     size_t len_request = strlen(request);

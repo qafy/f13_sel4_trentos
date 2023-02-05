@@ -1,0 +1,9 @@
+#!/bin/sh
+# copy bootfiles to SD Card
+cp -r ../../../sdk/resources/rpi3_sd_card/* /run/media/moritzbeckel/TRENTOS/
+
+# copy TRENTOS system image (the flasher application) to SD Card
+cp -r ../../../build-rpi3-Debug-tpm/images/os_image.elf /run/media/moritzbeckel/TRENTOS/
+# ensure files are written to the SD Card
+sync
+sudo umount /run/media/moritzbeckel/TRENTOS/

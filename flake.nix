@@ -13,6 +13,12 @@
         inherit inputs pkgs;
         modules = [
           {
+            languages.python.enable = true;
+
+            packages = [
+               pkgs.python3Packages.pycryptodome
+            ];
+
             pre-commit.hooks.clang-format = {
               enable = true;
               excludes = [

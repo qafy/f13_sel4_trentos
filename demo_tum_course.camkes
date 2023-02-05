@@ -98,7 +98,8 @@ assembly {
             timeServer,
             EXERCISE_DEMO_NIC_CONNECTION_TIMESERVER(nwDriver)
             nwStack.timeServer_rpc, nwStack.timeServer_notify,
-            tpm.timeServer_rpc, tpm.timeServer_notify
+            tpm.timeServer_rpc, tpm.timeServer_notify,
+            secureCommunication.timer_rpc, secureCommunication.timer_notify
         )
     #else
         TimeServer_INSTANCE_CONNECT_CLIENTS(
@@ -199,7 +200,8 @@ assembly {
         TimeServer_CLIENT_ASSIGN_BADGES(
             EXERCISE_DEMO_NIC_TIMESERVER_CLIENTS(nwDriver)
             nwStack.timeServer_rpc,
-            tpm.timeServer_rpc
+            tpm.timeServer_rpc,
+            secureCommunication.timer_rpc, secureCommunication.timer_notify
         )
 
         RPi_SPI_TPM_HW_INSTANCE_CONFIGURE_SELF(tpm_hw)

@@ -9,17 +9,15 @@
 procedure if_Crypto {
     include "OS_Error.h";
 
-    OS_Error_t generateKey(
-        out int size
-    );
+    OS_Error_t generateKey();
 
     OS_Error_t encrypt(
-        in int input_size,
-        out int output_size
+        in size_t input_size,
+        out size_t output_size
     );
 
     OS_Error_t decrypt(
-        in int input_size,
-        out int output_size
+        in size_t input_size,
+        out size_t output_size
     );
 };

@@ -17,40 +17,36 @@
 
 static OS_Dataport_t k_port = OS_DATAPORT_ASSIGN(keystore_port);
 
-OS_Error_t keystore_rpc_loadKey(int handle, size_t *size) {
+OS_Error_t keystore_rpc_loadKey(int handle) {
   int rc;
-  WOLFTPM2_KEY key;
+  WOLFTPM2_KEY *key = OS_Dataport_getBuf(k_port);
 
-  rc = wolfTPM2_ReadPublicKey(&dev, &key, handle);
+  rc = wolfTPM2_ReadPublicKey(&dev, key, handle);
   if (rc != TPM_RC_SUCCESS) {
-    printf("wolfTPM2_ReadPublicKey failed: %s\n", TPM2_GetRCString(rc));
+    printf("wolfTPM2_ReadPublicKey couldn't find key at handle 0x%x: %s\n",
+           handle, TPM2_GetRCString(rc));
     return OS_ERROR_INVALID_HANDLE;
   }
 
-  key.handle.auth.size = sizeof(TPM_RSA_AUTH) - 1;
-  memcpy(key.handle.auth.buffer, TPM_RSA_AUTH, key.handle.auth.size);
-
-  *size = sizeof(WOLFTPM2_HANDLE);
-  // FIXME: Can we remove this memcpy safely?
-  memcpy(OS_Dataport_getBuf(k_port), &key, *size);
+  // We need to disable authentification, otherwise external keys wouldn't load
+  // properly
+  /*
+  key->handle.auth.size = sizeof(TPM_RSA_AUTH) - 1;
+  memcpy(key->handle.auth.buffer, TPM_RSA_AUTH, key->handle.auth.size);
+  */
 
   return OS_SUCCESS;
 }
 
 OS_Error_t keystore_rpc_storeKey(int handle) {
   int rc;
-  WOLFTPM2_KEY key;
+  WOLFTPM2_KEY *key = OS_Dataport_getBuf(k_port);
 
-  // FIXME: Can we remove this memcpy safely?
-  memcpy(&key, OS_Dataport_getBuf(k_port), sizeof(WOLFTPM2_HANDLE));
-
-  rc = wolfTPM2_NVStoreKey(&dev, TPM_RH_OWNER, &key, handle);
+  rc = wolfTPM2_NVStoreKey(&dev, TPM_RH_OWNER, key, handle);
   if (rc != TPM_RC_SUCCESS) {
     printf("wolfTPM2_NVStoreKey failed: %s\n", TPM2_GetRCString(rc));
     return OS_ERROR_GENERIC;
   }
-
-  memcpy(OS_Dataport_getBuf(k_port), &key, sizeof(WOLFTPM2_HANDLE));
 
   return OS_SUCCESS;
 }

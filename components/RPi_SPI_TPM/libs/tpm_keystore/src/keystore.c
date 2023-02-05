@@ -15,25 +15,25 @@
 #include "keystore.h"
 
 OS_Error_t TPM_Keystore_loadKey(const TPM_Keystore_Handle_t *ctx, size_t handle,
-                                void *key, size_t *size) {
+                                TPM_Crypto_Key_t *key) {
   int rc;
 
-  rc = ctx->loadKey(TPM_RSA_BASE_HANDLE + handle, size);
+  rc = ctx->loadKey(TPM_RSA_BASE_HANDLE + handle);
 
-  memcpy(key, OS_Dataport_getBuf(ctx->dataport), *size);
+  memcpy(key, OS_Dataport_getBuf(ctx->dataport), TPM_CRYPTO_KEY_SIZE);
 
   return rc;
 }
 
 OS_Error_t TPM_Keystore_storeKey(const TPM_Keystore_Handle_t *ctx,
-                                 size_t handle, void *key, size_t size) {
+                                 size_t handle, TPM_Crypto_Key_t *key) {
   int rc;
 
-  memcpy(OS_Dataport_getBuf(ctx->dataport), key, size);
+  memcpy(OS_Dataport_getBuf(ctx->dataport), key, TPM_CRYPTO_KEY_SIZE);
 
   rc = ctx->storeKey(TPM_RSA_BASE_HANDLE + handle);
 
-  memcpy(key, OS_Dataport_getBuf(ctx->dataport), size);
+  memcpy(key, OS_Dataport_getBuf(ctx->dataport), TPM_CRYPTO_KEY_SIZE);
 
   return rc;
 }

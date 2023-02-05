@@ -9,7 +9,12 @@ static OS_Error_t
 encryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 {
     OS_Error_t res;
-    
+
+#if BENCHMARK
+    uint64_t start, fin;
+    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &start);
+#endif
+
 #ifdef USE_HW_TPM
 
     (void)res;
@@ -34,6 +39,10 @@ encryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 
 #endif /* USE_HW_TPM */
 
+#if BENCHMARK
+    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &fin);
+    Debug_LOG_INFO("Encryption took %lu milliseconds", (long unsigned int)(fin - start));
+#endif
     return OS_SUCCESS;
 }
 
@@ -41,6 +50,10 @@ static OS_Error_t
 decryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 {
     OS_Error_t res;
+#if BENCHMARK
+    uint64_t start, fin;
+    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &start);
+#endif
 
 #ifdef USE_HW_TPM
 
@@ -65,6 +78,11 @@ decryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
     OS_CryptoCipher_free(hCipher);
 
 #endif /* USE_HW_TPM */
+
+#if BENCHMARK
+    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &fin);
+    Debug_LOG_INFO("Decryption took %lu milliseconds", (long unsigned int)(fin - start));
+#endif
 
     return OS_SUCCESS;
 }

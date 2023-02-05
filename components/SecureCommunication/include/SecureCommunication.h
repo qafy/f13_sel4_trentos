@@ -15,6 +15,7 @@
 #include "network/OS_SocketTypes.h"
 
 #include "OS_Dataport.h"
+#include "TimeServer.h"
 #include "lib_debug/Debug.h"
 
 #include "mbedtls/pk.h"
@@ -33,6 +34,7 @@
 
 #define LOAD_KEYS_FROM_FILESYSTEM 1
 #define GENERATE_KEYS 0
+#define BENCHMARK 0
 
 seL4_Word
 secureCommunication_rpc_get_sender_id(void);
@@ -87,9 +89,16 @@ static OS_FileSystem_Config_t cfg =
             sd_rpc,
             sd_port),
 };
-
+//----------------------------------------------------------------------
+// Timeserver
 //----------------------------------------------------------------------
 
+static const if_OS_Timer_t timer =
+    IF_OS_TIMER_ASSIGN(
+        timer_rpc,
+        timer_notify);
+
+//----------------------------------------------------------------------
 
 // Server Key Data
 static OS_CryptoKey_Data_t dataSrvPub;

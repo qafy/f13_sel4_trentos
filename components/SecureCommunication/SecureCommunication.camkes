@@ -9,6 +9,7 @@ import <global-connectors.camkes>;
 
 import <if_OS_Socket.camkes>;
 import <if_OS_Entropy.camkes>;
+import <if_OS_Timer.camkes>;
 
 #include "lib_macros/ForEach.h"
 
@@ -45,14 +46,17 @@ import <if_OS_Storage.camkes>;
         /* Networking */ \
         IF_OS_SOCKET_USE(networkStack) \
         /* Entropy */\
-        uses    if_OS_Entropy   entropy_rpc; \
-        dataport    Buf   entropy_port; \
+        uses        if_OS_Entropy   entropy_rpc; \
+        dataport    Buf             entropy_port; \
         /* Crypto */ \
-        uses    if_Crypto    crypto_rpc; \
-        dataport    Buf   crypto_port; \
+        uses        if_Crypto       crypto_rpc; \
+        dataport    Buf             crypto_port; \
         /* Keystore */ \
-        uses    if_Keystore  keystore_rpc; \
-        dataport    Buf   keystore_port; \
+        uses        if_Keystore     keystore_rpc; \
+        dataport    Buf             keystore_port; \
+        /* Timer */ \
+        uses        if_OS_Timer     timer_rpc; \
+        consumes    TimerReady      timer_notfy; \
         \
     }
 
@@ -72,10 +76,15 @@ import <if_OS_Storage.camkes>;
         /* Networking */ \
         IF_OS_SOCKET_USE(networkStack) \
         /* Entropy */\
-        uses    if_OS_Entropy   entropy_rpc; \
-        dataport    Buf   entropy_port; \
-        uses    if_OS_Storage sd_rpc; \
-        dataport    Buf   sd_port; \
+        uses        if_OS_Entropy   entropy_rpc; \
+        dataport    Buf             entropy_port; \
+        /* Storage */ \
+        uses        if_OS_Storage   sd_rpc; \
+        dataport    Buf             sd_port; \
+        /* Timer */ \
+        uses        if_OS_Timer     timer_rpc; \
+        consumes    TimerReady      timer_notify; \
+        \
         \
     }
 

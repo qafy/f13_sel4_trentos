@@ -53,6 +53,8 @@ function(SecureCommunication_DeclareCAmkESComponent
             lib_server
             os_core_api
             os_socket_client
+            TimeServer_client
+            
             # os_crypto is needed for mbedtls
             os_crypto
             3rdparty_mbedtls_for_cert

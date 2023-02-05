@@ -104,7 +104,8 @@ assembly {
         TimeServer_INSTANCE_CONNECT_CLIENTS(
             timeServer,
             EXERCISE_DEMO_NIC_CONNECTION_TIMESERVER(nwDriver)
-            nwStack.timeServer_rpc, nwStack.timeServer_notify
+            nwStack.timeServer_rpc, nwStack.timeServer_notify,
+            secureCommunication.timer_rpc, secureCommunication.timer_notify
         )
     #endif
 
@@ -205,7 +206,8 @@ assembly {
     #else
         TimeServer_CLIENT_ASSIGN_BADGES(
             EXERCISE_DEMO_NIC_TIMESERVER_CLIENTS(nwDriver)
-            nwStack.timeServer_rpc
+            nwStack.timeServer_rpc,
+            secureCommunication.timer_rpc
         )
 
         SdHostController_INSTANCE_CONFIGURE(

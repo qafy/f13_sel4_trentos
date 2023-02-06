@@ -49,7 +49,7 @@
 #else
 #include MBEDTLS_CONFIG_FILE
 #endif
-
+#define MBEDTLS_ASN1_WRITE_C
 #if defined(MBEDTLS_ASN1_WRITE_C)
 
 #include "mbedtls/asn1write.h"

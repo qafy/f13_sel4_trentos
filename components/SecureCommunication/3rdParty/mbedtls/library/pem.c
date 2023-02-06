@@ -69,7 +69,7 @@
 #define mbedtls_calloc    calloc
 #define mbedtls_free       free
 #endif
-
+#undef MBEDTLS_PEM_PARSE_C
 #if defined(MBEDTLS_PEM_PARSE_C)
 void mbedtls_pem_init( mbedtls_pem_context *ctx )
 {
@@ -458,7 +458,7 @@ void mbedtls_pem_free( mbedtls_pem_context *ctx )
     mbedtls_platform_zeroize( ctx, sizeof( mbedtls_pem_context ) );
 }
 #endif /* MBEDTLS_PEM_PARSE_C */
-
+#define MBEDTLS_PEM_WRITE_C
 #if defined(MBEDTLS_PEM_WRITE_C)
 int mbedtls_pem_write_buffer( const char *header, const char *footer,
                       const unsigned char *der_data, size_t der_len,

@@ -49,7 +49,7 @@
 #else
 #include MBEDTLS_CONFIG_FILE
 #endif
-
+#define MBEDTLS_PK_WRITE_C
 #if defined(MBEDTLS_PK_WRITE_C)
 
 #include "mbedtls/pk.h"
@@ -427,7 +427,7 @@ int mbedtls_pk_write_key_der( mbedtls_pk_context *key, unsigned char *buf, size_
 
     return( (int) len );
 }
-
+#define MBEDTLS_PEM_WRITE_C
 #if defined(MBEDTLS_PEM_WRITE_C)
 
 #define PEM_BEGIN_PUBLIC_KEY    "-----BEGIN PUBLIC KEY-----\n"

@@ -10,7 +10,7 @@
 
 #include <camkes.h>
 
-#include "crypto.h"
+#include "TPM_Crypto.h"
 
 OS_Error_t TPM_Crypto_generateKey(const TPM_Crypto_Handle_t *ctx,
                                   TPM_Crypto_Key_t *key) {

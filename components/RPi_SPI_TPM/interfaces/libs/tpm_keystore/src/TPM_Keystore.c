@@ -12,7 +12,7 @@
 
 #include "system_config.h"
 
-#include "keystore.h"
+#include "TPM_Keystore.h"
 
 OS_Error_t TPM_Keystore_loadKey(const TPM_Keystore_Handle_t *ctx, size_t handle,
                                 TPM_Crypto_Key_t *key) {

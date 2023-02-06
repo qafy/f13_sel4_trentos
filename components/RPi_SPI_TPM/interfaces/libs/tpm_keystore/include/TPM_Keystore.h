@@ -8,7 +8,7 @@
 #include "OS_Dataport.h"
 #include "OS_Error.h"
 
-#include "crypto.h"
+#include "TPM_Crypto.h"
 
 typedef struct {
   OS_Error_t (*loadKey)(int handle);

@@ -87,12 +87,16 @@ function(RPi_SPI_TPM_DeclareCAmkESComponent name)
 endfunction()
 
 #------------------------------------------------------------------------------
-
-set(TPM_CRYPTO_SOURCES
-    "${CMAKE_CURRENT_LIST_DIR}/libs/tpm_crypto/src/crypto.c"
-)
+#
+#                            Interface libraries
+#
+#------------------------------------------------------------------------------
 
 project(tpm_crypto C)
+
+set(TPM_CRYPTO_SOURCES
+    "${CMAKE_CURRENT_LIST_DIR}/interfaces/libs/tpm_crypto/src/TPM_Crypto.c"
+)
 
 add_library(${PROJECT_NAME} INTERFACE)
 
@@ -103,16 +107,16 @@ target_sources(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME}
     INTERFACE
-        "${CMAKE_CURRENT_LIST_DIR}/libs/tpm_crypto/include"
+        "${CMAKE_CURRENT_LIST_DIR}/interfaces/libs/tpm_crypto/include"
 )
 
 #------------------------------------------------------------------------------
 
-set(TPM_KEYSTORE_SOURCES
-    "${CMAKE_CURRENT_LIST_DIR}/libs/tpm_keystore/src/keystore.c"
-)
-
 project(tpm_keystore C)
+
+set(TPM_KEYSTORE_SOURCES
+    "${CMAKE_CURRENT_LIST_DIR}/interfaces/libs/tpm_keystore/src/TPM_Keystore.c"
+)
 
 add_library(${PROJECT_NAME} INTERFACE)
 
@@ -123,5 +127,5 @@ target_sources(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME}
     INTERFACE
-        "${CMAKE_CURRENT_LIST_DIR}/libs/tpm_keystore/include"
+        "${CMAKE_CURRENT_LIST_DIR}/interfaces/libs/tpm_keystore/include"
 )

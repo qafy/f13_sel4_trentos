@@ -201,7 +201,7 @@ assembly {
             EXERCISE_DEMO_NIC_TIMESERVER_CLIENTS(nwDriver)
             nwStack.timeServer_rpc,
             tpm.timeServer_rpc,
-            secureCommunication.timer_rpc, secureCommunication.timer_notify
+            secureCommunication.timer_rpc
         )
 
         RPi_SPI_TPM_HW_INSTANCE_CONFIGURE_SELF(tpm_hw)

@@ -129,6 +129,35 @@ OS_Error_t crypto_rpc_importPrivate() {
   return OS_SUCCESS;
 }
 
+OS_Error_t crypto_rpc_exportPublicPem(size_t *size) {
+  int tpm_rc;
+  WOLFTPM2_HANDLE *handle = OS_Dataport_getBuf(c_port);
+  WOLFTPM2_KEY key = {0};
+  /* output needs to be in heap
+   * output_size needs to be a local variable
+   */
+  unsigned char *output = malloc(OS_Dataport_getSize(c_port));
+  size_t output_size;
+
+  tpm_rc = wolfTPM2_ReadPublicKey(&dev, &key, handle->hndl);
+  if (tpm_rc != TPM_RC_SUCCESS) {
+    printf("wolfTPM2_ReadPublicKey failed %s\n", TPM2_GetRCString(tpm_rc));
+    return OS_ERROR_GENERIC;
+  }
+
+  tpm_rc = wolfTPM2_RsaKey_TpmToPemPub(&dev, &key, output, &output_size);
+  if (tpm_rc != TPM_RC_SUCCESS) {
+    printf("wolfTPM2_TpmToPemPub failed: %s\n", TPM2_GetRCString(tpm_rc));
+    return OS_ERROR_GENERIC;
+  }
+
+  *size = output_size;
+  memcpy(OS_Dataport_getBuf(c_port), output, *size);
+  free(output);
+
+  return OS_SUCCESS;
+}
+
 OS_Error_t crypto_rpc_encrypt(size_t input_size, size_t *output_size) {
   int tpm_rc;
   unsigned char output[OS_Dataport_getSize(c_port)];

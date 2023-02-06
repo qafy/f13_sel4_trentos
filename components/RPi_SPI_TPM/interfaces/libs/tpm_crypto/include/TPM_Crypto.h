@@ -22,6 +22,7 @@ typedef struct {
   OS_Error_t (*generateKey)();
   OS_Error_t (*importPublic)();
   OS_Error_t (*importPrivate)();
+  OS_Error_t (*exportPublicPem)(size_t *size);
   OS_Error_t (*encrypt)(size_t input_size, size_t *output_size);
   OS_Error_t (*decrypt)(size_t input_size, size_t *output_size);
   OS_Dataport_t dataport;
@@ -79,6 +80,11 @@ OS_Error_t TPM_Crypto_importPublic(const TPM_Crypto_Handle_t *ctx,
 OS_Error_t TPM_Crypto_importPrivate(const TPM_Crypto_Handle_t *ctx,
                                     TPM_Crypto_Key_t *key, void *raw);
 
+OS_Error_t TPM_Crypto_exportPublicPem(const TPM_Crypto_Handle_t *ctx,
+                                      TPM_Crypto_Key_t *key,
+                                      unsigned char *output,
+                                      size_t *output_size);
+
 OS_Error_t TPM_Crypto_encrypt(const TPM_Crypto_Handle_t *ctx,
                               TPM_Crypto_Key_t *key, unsigned char *input,
                               size_t input_size, unsigned char *output,
@@ -94,6 +100,7 @@ OS_Error_t TPM_Crypto_decrypt(const TPM_Crypto_Handle_t *ctx,
   .generateKey        = _rpc_ ## _generateKey,      \
   .importPublic       = _rpc_ ## _importPublic,     \
   .importPrivate      = _rpc_ ## _importPrivate,    \
+  .exportPublicPem    = _rpc_ ## _exportPublicPem,  \
   .encrypt            = _rpc_ ## _encrypt,          \
   .decrypt            = _rpc_ ## _decrypt,          \
   .dataport           = OS_DATAPORT_ASSIGN(_port_)  \

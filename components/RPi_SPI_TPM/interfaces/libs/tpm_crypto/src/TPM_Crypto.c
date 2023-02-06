@@ -49,6 +49,21 @@ OS_Error_t TPM_Crypto_importPrivate(const TPM_Crypto_Handle_t *ctx,
   return rc;
 }
 
+OS_Error_t TPM_Crypto_exportPublicPem(const TPM_Crypto_Handle_t *ctx,
+                                      TPM_Crypto_Key_t *key,
+                                      unsigned char *output,
+                                      size_t *output_size) {
+  int rc;
+
+  memcpy(OS_Dataport_getBuf(ctx->dataport), key, TPM_CRYPTO_KEY_SIZE);
+
+  rc = ctx->exportPublicPem(output_size);
+
+  memcpy(output, OS_Dataport_getBuf(ctx->dataport), *output_size);
+
+  return rc;
+}
+
 OS_Error_t TPM_Crypto_encrypt(const TPM_Crypto_Handle_t *ctx,
                               TPM_Crypto_Key_t *key, unsigned char *input,
                               size_t input_size, unsigned char *output,

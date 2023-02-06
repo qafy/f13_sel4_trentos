@@ -10,7 +10,7 @@ encryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 {
     OS_Error_t res;
 
-#if BENCHMARK
+#ifdef BENCHMARK
     uint64_t start, fin;
     TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &start);
 #endif
@@ -43,7 +43,7 @@ encryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 
 #endif /* USE_HW_TPM */
 
-#if BENCHMARK
+#ifdef BENCHMARK
     TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &fin);
     Debug_LOG_INFO("Encryption took %lu milliseconds", (long unsigned int)(fin - start));
 #endif
@@ -54,7 +54,7 @@ static OS_Error_t
 decryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 {
     OS_Error_t res;
-#if BENCHMARK
+#ifdef BENCHMARK
     uint64_t start, fin;
     TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &start);
 #endif
@@ -87,7 +87,7 @@ decryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 
 #endif /* USE_HW_TPM */
 
-#if BENCHMARK
+#ifdef BENCHMARK
     TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &fin);
     Debug_LOG_INFO("Decryption took %lu milliseconds", (long unsigned int)(fin - start));
 #endif
@@ -485,7 +485,7 @@ loadKeys()
     size_t len;
     char *publicKey, *privateKey;
 
-#if !LOAD_KEYS_FROM_FILESYSTEM
+#ifndef LOAD_KEYS_FROM_FILESYSTEM
     publicKey = SERVER_PUBLIC_KEY;
     privateKey = CLIENT_PRIVATE_KEY;
 #else
@@ -584,7 +584,7 @@ loadKeys()
     dataClntPrvt.data.rsa.prv.dLen = 255;
     dataClntPrvt.data.rsa.prv.eLen = 3;
 
-#if LOAD_KEYS_FROM_FILESYSTEM
+#ifdef LOAD_KEYS_FROM_FILESYSTEM
     free(publicKey);
     free(privateKey);
 #endif

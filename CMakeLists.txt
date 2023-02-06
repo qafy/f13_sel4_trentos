@@ -24,6 +24,14 @@ option(HW_TPM "Use RPi_SPI_TPM component for hardware TPM support" OFF)
 include("plat/${PLATFORM}/plat_nic.cmake")
 include("components/SecureCommunication/SecureCommunication.cmake")
 
+if(LOAD_KEYS_FROM_FILESYSTEM)
+    add_definitions(-DLOAD_KEYS_FROM_FILESYSTEM)
+endif()
+
+if(BENCHMARK)
+    add_definitions(-DBENCHMARK)
+endif()
+
 if(HW_TPM)
     add_definitions(-DUSE_HW_TPM)
     # Small hack to add definitions to the camkes preprocessor

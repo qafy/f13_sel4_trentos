@@ -35,13 +35,9 @@
 #include "OS_KeystoreRamFV.h"
 #include "OS_FileSystem.h"
 
-
-#define LOAD_KEYS_FROM_FILESYSTEM 0
-
 #endif /* USE_HW_TPM */
 
 #define GENERATE_KEYS 0
-#define BENCHMARK 0
 
 seL4_Word
 secureCommunication_rpc_get_sender_id(void);

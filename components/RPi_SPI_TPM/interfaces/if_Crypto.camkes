@@ -11,6 +11,10 @@ procedure if_Crypto {
 
     OS_Error_t generateKey();
 
+    OS_Error_t importPublic();
+
+    OS_Error_t importPrivate();
+
     OS_Error_t encrypt(
         in size_t input_size,
         out size_t output_size

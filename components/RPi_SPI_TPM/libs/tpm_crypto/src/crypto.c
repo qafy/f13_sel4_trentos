@@ -23,6 +23,32 @@ OS_Error_t TPM_Crypto_generateKey(const TPM_Crypto_Handle_t *ctx,
   return rc;
 }
 
+OS_Error_t TPM_Crypto_importPublic(const TPM_Crypto_Handle_t *ctx,
+                                   TPM_Crypto_Key_t *key, void *raw) {
+  int rc = 0;
+
+  memcpy(OS_Dataport_getBuf(ctx->dataport), raw, TPM_CRYPO_PUBLIC_RAW_SIZE);
+
+  rc = ctx->importPublic();
+
+  memcpy(key, OS_Dataport_getBuf(ctx->dataport), TPM_CRYPTO_KEY_SIZE);
+
+  return rc;
+}
+
+OS_Error_t TPM_Crypto_importPrivate(const TPM_Crypto_Handle_t *ctx,
+                                    TPM_Crypto_Key_t *key, void *raw) {
+  int rc = 0;
+
+  memcpy(OS_Dataport_getBuf(ctx->dataport), raw, TPM_CRYPO_PRIVATE_RAW_SIZE);
+
+  rc = ctx->importPrivate();
+
+  memcpy(key, OS_Dataport_getBuf(ctx->dataport), TPM_CRYPTO_KEY_SIZE);
+
+  return rc;
+}
+
 OS_Error_t TPM_Crypto_encrypt(const TPM_Crypto_Handle_t *ctx,
                               TPM_Crypto_Key_t *key, unsigned char *input,
                               size_t input_size, unsigned char *output,

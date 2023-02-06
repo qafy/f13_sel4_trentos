@@ -60,6 +60,75 @@ OS_Error_t crypto_rpc_generateKey() {
   return OS_SUCCESS;
 }
 
+OS_Error_t crypto_rpc_importPublic() {
+  int tpm_rc;
+  unsigned char raw[260];
+  WOLFTPM2_KEY key = {0};
+  unsigned char *n = raw;
+  unsigned char *e_raw = n + 256;
+  size_t nSz = 256;
+
+  memcpy(raw, OS_Dataport_getBuf(c_port), sizeof(raw));
+
+  uint32_t e = e_raw[0] << 24 | e_raw[1] << 16 | e_raw[2] << 8 | e_raw[3];
+
+  tpm_rc = wolfTPM2_LoadRsaPublicKey_ex(&dev, &key, n, nSz, e, TPM_ALG_NULL,
+                                        WOLFTPM2_WRAP_DIGEST);
+  if (tpm_rc != TPM_RC_SUCCESS) {
+    printf("wolfTPM2_LoadRsaPublicKey failed 0x%x: %s\n", tpm_rc,
+           TPM2_GetRCString(tpm_rc));
+    return OS_ERROR_GENERIC;
+  }
+
+  memcpy(OS_Dataport_getBuf(c_port), &key, sizeof(WOLFTPM2_HANDLE));
+
+  return OS_SUCCESS;
+}
+
+OS_Error_t crypto_rpc_importPrivate() {
+  int rc, tpm_rc;
+  unsigned char raw[772];
+  WOLFTPM2_KEYBLOB keyblob;
+  WOLFTPM2_KEY srk;
+
+  unsigned char *n = raw;
+  unsigned char *p = n + 256;
+  unsigned char *q = p + 128;
+  unsigned char *d = q + 128;
+  unsigned char *e_raw = d + 256;
+  size_t nSz = 256;
+  size_t qSz = 128;
+
+  memcpy(raw, OS_Dataport_getBuf(c_port), sizeof(raw));
+
+  uint32_t e = e_raw[0] << 24 | e_raw[1] << 16 | e_raw[2] << 8 | e_raw[3];
+
+  rc = tpm_int_get_or_create_srk(&srk);
+  if (rc != OS_SUCCESS) {
+    printf("keystore_int_get_or_create_srk failed: %d\n", rc);
+    return rc;
+  }
+
+  tpm_rc = wolfTPM2_ImportRsaPrivateKey(&dev, &srk, &keyblob, n, nSz, e, q, qSz,
+                                        TPM_ALG_NULL, WOLFTPM2_WRAP_DIGEST);
+  if (tpm_rc != TPM_RC_SUCCESS) {
+    printf("wolfTPM2_ImportRsaPrivateKey failed 0x%x: %s\n", tpm_rc,
+           TPM2_GetRCString(tpm_rc));
+    return OS_ERROR_GENERIC;
+  }
+
+  tpm_rc = wolfTPM2_LoadKey(&dev, &keyblob, &srk.handle);
+  if (tpm_rc != TPM_RC_SUCCESS) {
+    printf("wolfTPM2_LoadKey failed 0x%x: %s\n", tpm_rc,
+           TPM2_GetRCString(tpm_rc));
+    return OS_ERROR_GENERIC;
+  }
+
+  memcpy(OS_Dataport_getBuf(c_port), &keyblob, sizeof(WOLFTPM2_HANDLE));
+
+  return OS_SUCCESS;
+}
+
 OS_Error_t crypto_rpc_encrypt(size_t input_size, size_t *output_size) {
   int tpm_rc;
   unsigned char output[OS_Dataport_getSize(c_port)];

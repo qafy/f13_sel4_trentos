@@ -49,7 +49,7 @@
 #else
 #include MBEDTLS_CONFIG_FILE
 #endif
-
+#undef MBEDTLS_PK_C
 #if defined(MBEDTLS_PK_C)
 #include "mbedtls/pk.h"
 #include "mbedtls/pk_internal.h"

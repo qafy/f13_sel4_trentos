@@ -46,9 +46,12 @@
  *
  *  **********
  */
+
+#undef MBEDTLS_PEM_H
 #ifndef MBEDTLS_PEM_H
 #define MBEDTLS_PEM_H
 
+#undef MBEDTLS_CONFIG_FILE
 #if !defined(MBEDTLS_CONFIG_FILE)
 #include "config.h"
 #else
@@ -77,7 +80,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#define MBEDTLS_PEM_PARSE_C
 #if defined(MBEDTLS_PEM_PARSE_C)
 /**
  * \brief       PEM context structure
@@ -131,7 +134,7 @@ int mbedtls_pem_read_buffer( mbedtls_pem_context *ctx, const char *header, const
  */
 void mbedtls_pem_free( mbedtls_pem_context *ctx );
 #endif /* MBEDTLS_PEM_PARSE_C */
-
+#define MBEDTLS_PEM_WRITE_C
 #if defined(MBEDTLS_PEM_WRITE_C)
 /**
  * \brief           Write a buffer of PEM information from a DER encoded

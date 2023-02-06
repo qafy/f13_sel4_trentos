@@ -56,7 +56,7 @@ import <if_OS_Storage.camkes>;
         dataport    Buf             keystore_port; \
         /* Timer */ \
         uses        if_OS_Timer     timer_rpc; \
-        consumes    TimerReady      timer_notfy; \
+        consumes    TimerReady      timer_notify; \
         \
     }
 

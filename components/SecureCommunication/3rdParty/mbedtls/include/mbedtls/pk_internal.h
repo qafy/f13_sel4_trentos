@@ -50,6 +50,7 @@
 #ifndef MBEDTLS_PK_WRAP_H
 #define MBEDTLS_PK_WRAP_H
 
+#undef MBEDTLS_CONFIG_FILE
 #if !defined(MBEDTLS_CONFIG_FILE)
 #include "config.h"
 #else

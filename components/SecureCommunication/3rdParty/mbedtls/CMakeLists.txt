@@ -5,10 +5,12 @@
 
 # Sources for only CRYPTO builds
 set(SOURCES_SECURE_COMMUNICATION
+    "${CMAKE_CURRENT_SOURCE_DIR}/library/pem.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/library/x509write_crt.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/library/asn1write.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/library/pkwrite.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/library/pem.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/library/pk.c"
+    
 )
 
 set(MODULE_DEFINITIONS)

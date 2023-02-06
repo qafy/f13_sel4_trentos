@@ -521,6 +521,11 @@ int mbedtls_pk_write_key_der( mbedtls_pk_context *key, unsigned char *buf, size_
 #define PRV_DER_MAX_BYTES   ( RSA_PRV_DER_MAX_BYTES > ECP_PRV_DER_MAX_BYTES ? \
                               RSA_PRV_DER_MAX_BYTES : ECP_PRV_DER_MAX_BYTES )
 
+int mbedtls_pem_write_buffer( const char *header, const char *footer,
+                      const unsigned char *der_data, size_t der_len,
+                      unsigned char *buf, size_t buf_len, size_t *olen );
+
+
 int mbedtls_pk_write_pubkey_pem( mbedtls_pk_context *key, unsigned char *buf, size_t size )
 {
     int ret;

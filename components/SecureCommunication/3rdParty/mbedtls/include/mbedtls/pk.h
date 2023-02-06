@@ -49,7 +49,7 @@
 
 #ifndef MBEDTLS_PK_H
 #define MBEDTLS_PK_H
-
+#undef MBEDTLS_CONFIG_FILE
 #if !defined(MBEDTLS_CONFIG_FILE)
 #include "config.h"
 #else

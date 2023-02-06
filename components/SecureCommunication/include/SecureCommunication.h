@@ -25,15 +25,21 @@
 #include <camkes.h>
 
 #ifdef USE_HW_TPM
+
+#include "TPM_Crypto.h"
+#include "TPM_Keystore.h"
+
 #else
 
 #include "OS_Crypto.h"
 #include "OS_KeystoreRamFV.h"
 #include "OS_FileSystem.h"
 
-#endif
 
-#define LOAD_KEYS_FROM_FILESYSTEM 1
+#define LOAD_KEYS_FROM_FILESYSTEM 0
+
+#endif /* USE_HW_TPM */
+
 #define GENERATE_KEYS 0
 #define BENCHMARK 0
 
@@ -49,7 +55,27 @@ static const if_OS_Socket_t networkStackCtx =
 
 #ifdef USE_HW_TPM
 
+//----------------------------------------------------------------------
+// TPM Crypto
+//----------------------------------------------------------------------
+
+static const TPM_Crypto_Handle_t cryptoCtx =
+    IF_TPM_CRYPTO_ASSIGN(crypto_rpc, crypto_port);
+
+//----------------------------------------------------------------------
+// TPM Keystore
+//----------------------------------------------------------------------
+
+static const TPM_Keystore_Handle_t keystoreCtx =
+    IF_TPM_KEYSTORE_ASSIGN(keystore_rpc, keystore_port);
+
+// Client Keys
+static TPM_Crypto_Key_t hKeyClnt;
+// Server Key
+static TPM_Crypto_Key_t hKeySrvPub;
+
 #else
+
 //----------------------------------------------------------------------
 // Crypto
 //----------------------------------------------------------------------

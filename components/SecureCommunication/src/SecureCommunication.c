@@ -17,7 +17,11 @@ encryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 
 #ifdef USE_HW_TPM
 
-    (void)res;
+    res = TPM_Crypto_encrypt(&cryptoCtx, &hKeySrvPub, input, inputLen, output, outputLen);
+    if (res != OS_SUCCESS) {
+        Debug_LOG_ERROR("Error while proccess code %d", res);
+        return res;
+    }
 
 #else
 
@@ -57,7 +61,11 @@ decryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 
 #ifdef USE_HW_TPM
 
-    (void)res;
+    res = TPM_Crypto_decrypt(&cryptoCtx, &hKeyClnt, input, inputLen, output, outputLen);
+    if (res != OS_SUCCESS) {
+        Debug_LOG_ERROR("Error while proccess 2 code %d", res);
+        return res;
+    }
 
 #else
 
@@ -94,7 +102,12 @@ generateKeys()
 
 #ifdef USE_HW_TPM
 
-    (void)res;
+    res = TPM_Crypto_generateKey(&cryptoCtx, &hKeyClnt);
+    if (res != OS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Failed to generate client key\n");
+        return res;
+    }
 
 #else
 
@@ -336,13 +349,140 @@ loadKeysFromFilesystem(char **pub, char **prv)
 
 #endif /* !USE_HW_TPM */
 
+#ifdef USE_HW_TPM
+
+static OS_Error_t
+importServerKeys()
+{
+    OS_Error_t res;
+    int rc;
+    char publicKey[] = SERVER_PUBLIC_KEY;
+    unsigned char raw[TPM_CRYPO_PUBLIC_RAW_SIZE] = {0};
+    mbedtls_pk_context srvPubPem;
+    mbedtls_rsa_context *srvPubRsa;
+
+    // load public client key from PEM
+    mbedtls_pk_init(&srvPubPem);
+
+    res = mbedtls_pk_parse_public_key(&srvPubPem,
+                               (const unsigned char *)publicKey,
+                               strlen(publicKey) + 1);
+    if (res)
+    {
+        Debug_LOG_ERROR("Can not parse server key, err %d", res);
+        return res;
+    }
+
+    srvPubRsa = mbedtls_pk_rsa(srvPubPem);
+
+    res = mbedtls_rsa_export_raw(srvPubRsa,
+                                 raw, 256,
+                                 NULL, 0,
+                                 NULL, 0,
+                                 NULL, 0,
+                                 raw + 256, 4);
+    if (res)
+    {
+        Debug_LOG_ERROR("Can not export server key, err %d", res);
+        return res;
+    }
+
+    rc = TPM_Crypto_importPublic(&cryptoCtx, &hKeySrvPub, raw);
+    if (rc) {
+        Debug_LOG_ERROR("TPM: Could not import server key %d", rc);
+        return res;
+    }
+
+    return OS_SUCCESS;
+}
+
+static OS_Error_t
+importClientKeys()
+{
+    OS_Error_t res;
+    int rc;
+    char privateKey[] = CLIENT_PRIVATE_KEY;
+    unsigned char raw[TPM_CRYPO_PRIVATE_RAW_SIZE] = {0};
+    mbedtls_pk_context clntPrvtPem;
+    mbedtls_rsa_context *clntPrvtRsa;
+
+    // load private client key from PEM
+    mbedtls_pk_init(&clntPrvtPem);
+
+    res = mbedtls_pk_parse_key(&clntPrvtPem,
+                               (const unsigned char *)privateKey,
+                               strlen(privateKey) + 1, NULL, 0);
+    if (res)
+    {
+        Debug_LOG_ERROR("Can not parse client key, err %d", res);
+        return res;
+    }
+
+    clntPrvtRsa = mbedtls_pk_rsa(clntPrvtPem);
+
+    res = mbedtls_rsa_export_raw(clntPrvtRsa,
+                                 raw, 256,
+                                 raw + 256, 128,
+                                 raw + 256 + 128, 128,
+                                 raw + 256 + 128 + 128, 256,
+                                 raw + 256 + 128 + 128 + 256, 4);
+    if (res)
+    {
+        Debug_LOG_ERROR("Can not export client key, err %d", res);
+        return res;
+    }
+
+    rc = TPM_Crypto_importPrivate(&cryptoCtx, &hKeyClnt, raw);
+    if (rc) {
+        Debug_LOG_ERROR("TPM: Could not import client key %d\n", rc);
+        return res;
+    }
+
+    return OS_SUCCESS;
+}
+
+#endif /* USE_HW_TPM */
+
 static OS_Error_t
 loadKeys()
 {
-#ifdef USE_HW_TPM
-#else
-    size_t len;
     OS_Error_t res;
+
+#ifdef USE_HW_TPM
+
+    res = TPM_Keystore_loadKey(&keystoreCtx, TPM_CLIENT_KEY_HANDLE, &hKeyClnt);
+    if (res == OS_ERROR_INVALID_HANDLE) {
+        Debug_LOG_INFO("Client private key was not found in TPM keystore: Loading key from system_config...");
+
+        res = importClientKeys();
+        if (res != OS_SUCCESS) {
+            return res;
+        }
+
+        Debug_LOG_INFO("Client private key loaded! Storing in TPM keystore for future use...");
+
+        res = TPM_Keystore_storeKey(&keystoreCtx, TPM_CLIENT_KEY_HANDLE, &hKeyClnt);
+        if (res != OS_SUCCESS) {
+            Debug_LOG_ERROR("Could not store client key %d\n", res);
+            return res;
+        }
+    }
+    else if (res != OS_SUCCESS) {
+        Debug_LOG_ERROR("Can not load clnt_prvt, err %d\n", res);
+        return res;
+    }
+    Debug_LOG_INFO("Client private key loaded!");
+
+    res = importServerKeys();
+    if (res != OS_SUCCESS) {
+        Debug_LOG_ERROR("Can not load srv_pub, err %d\n", res);
+        return res;
+    }
+    Debug_LOG_INFO("Server public key loaded!");
+
+#else
+
+    size_t len;
     char *publicKey, *privateKey;
 
 #if !LOAD_KEYS_FROM_FILESYSTEM

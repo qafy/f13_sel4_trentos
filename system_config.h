@@ -55,6 +55,9 @@
 //-----------------------------------------------------------------------------
 #define TPM_SRK_HANDLE 0x81000200
 #define TPM_RSA_BASE_HANDLE 0x81000201
+
+#define TPM_CLIENT_KEY_HANDLE 0
+
 #define TPM_SRK_AUTH "ThisIsMySRKAuth"
 // We need to disable rsa authentification, otherwise external keys wouldn't load properly
 //#define TPM_RSA_AUTH "ThisIsMyKeyAuth"

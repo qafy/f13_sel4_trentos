@@ -50,7 +50,7 @@
 int TPM2_IoCb(TPM2_CTX *ctx, const byte *txBuf, byte *rxBuf, word16 xferSz,
               void *userCtx) {
   bcm2837_spi_transfernb((char *)txBuf, (char *)rxBuf, xferSz);
-  util_sleep(10);
+  util_sleep(20);
 
 #ifdef WOLFTPM_DEBUG_IO
   printf("TPM2_IoCb: Ret %d, Sz %d\n", ret, xferSz);

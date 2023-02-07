@@ -4,6 +4,7 @@
 
 #include "OS_Dataport.h"
 #include "OS_Error.h"
+#include "lib_debug/Debug.h"
 
 #include <string.h>
 
@@ -23,8 +24,9 @@ OS_Error_t keystore_rpc_loadKey(int handle) {
 
   rc = wolfTPM2_ReadPublicKey(&dev, key, handle);
   if (rc != TPM_RC_SUCCESS) {
-    printf("wolfTPM2_ReadPublicKey couldn't find key at handle 0x%x: %s\n",
-           handle, TPM2_GetRCString(rc));
+    Debug_LOG_INFO(
+        "wolfTPM2_ReadPublicKey couldn't find key at handle 0x%x: %s\n", handle,
+        TPM2_GetRCString(rc));
     return OS_ERROR_INVALID_HANDLE;
   }
 
@@ -44,7 +46,7 @@ OS_Error_t keystore_rpc_storeKey(int handle) {
 
   rc = wolfTPM2_NVStoreKey(&dev, TPM_RH_OWNER, key, handle);
   if (rc != TPM_RC_SUCCESS) {
-    printf("wolfTPM2_NVStoreKey failed: %s\n", TPM2_GetRCString(rc));
+    Debug_LOG_ERROR("wolfTPM2_NVStoreKey failed: %s\n", TPM2_GetRCString(rc));
     return OS_ERROR_GENERIC;
   }
 
@@ -57,7 +59,7 @@ OS_Error_t keystore_rpc_clearTPM() {
 
   rc = wolfTPM2_Clear(&dev);
   if (rc != TPM_RC_SUCCESS) {
-    printf("wolfTPM2_Clear failed: %s\n", TPM2_GetRCString(rc));
+    Debug_LOG_ERROR("wolfTPM2_Clear failed: %s\n", TPM2_GetRCString(rc));
     return OS_ERROR_GENERIC;
   }
 

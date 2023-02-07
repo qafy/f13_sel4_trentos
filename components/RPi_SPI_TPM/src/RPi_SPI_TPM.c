@@ -39,15 +39,16 @@ void tpm_init(void) {
   // TODO set wait time between wolftpm transfers (XTPM_WAIT macro)
   rc = wolfTPM2_Init(&dev, TPM2_IoCb, userCtx);
   if (rc != TPM_RC_SUCCESS) {
-    printf("TPM2_Init failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
+    Debug_LOG_ERROR("TPM2_Init failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
     return;
   }
 
   rc = wolfTPM2_GetCapabilities(&dev, &caps);
-  printf("Mfg %s (%d), Vendor %s, Fw %u.%u (0x%x), "
-         "FIPS 140-2 %d, CC-EAL4 %d\n",
-         caps.mfgStr, caps.mfg, caps.vendorStr, caps.fwVerMajor,
-         caps.fwVerMinor, caps.fwVerVendor, caps.fips140_2, caps.cc_eal4);
+  Debug_LOG_INFO("Mfg %s (%d), Vendor %s, Fw %u.%u (0x%x), "
+                 "FIPS 140-2 %d, CC-EAL4 %d\n",
+                 caps.mfgStr, caps.mfg, caps.vendorStr, caps.fwVerMajor,
+                 caps.fwVerMinor, caps.fwVerVendor, caps.fips140_2,
+                 caps.cc_eal4);
 }
 
 void bcm2837_gpio_set_pud(uint8_t pin, uint8_t pud) {

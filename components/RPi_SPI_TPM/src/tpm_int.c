@@ -6,6 +6,7 @@
  */
 
 #include "OS_Error.h"
+#include "lib_debug/Debug.h"
 
 #include "system_config.h"
 
@@ -25,18 +26,19 @@ OS_Error_t tpm_int_get_or_create_srk(WOLFTPM2_KEY *srk) {
     rc = wolfTPM2_CreateSRK(&dev, srk, TPM_ALG_RSA, (byte *)TPM_SRK_AUTH,
                             sizeof(TPM_SRK_AUTH) - 1);
     if (rc != TPM_RC_SUCCESS) {
-      printf("wolfTPM2_CreateSRK failed: %s\n", TPM2_GetRCString(rc));
+      Debug_LOG_ERROR("wolfTPM2_CreateSRK failed: %s\n", TPM2_GetRCString(rc));
       return OS_ERROR_GENERIC;
     }
 
     /* Move this key into persistent storage */
     rc = wolfTPM2_NVStoreKey(&dev, hierarchy, srk, TPM_SRK_HANDLE);
     if (rc != TPM_RC_SUCCESS) {
-      printf("wolfTPM2_NVStoreKey failed: %s\n", TPM2_GetRCString(rc));
+      Debug_LOG_ERROR("wolfTPM2_NVStoreKey failed: %s\n", TPM2_GetRCString(rc));
       return OS_ERROR_GENERIC;
     }
 
-    printf("Created new RSA Primary Storage Key at 0x%x\n", TPM_SRK_HANDLE);
+    Debug_LOG_INFO("Created new RSA Primary Storage Key at 0x%x\n",
+                   TPM_SRK_HANDLE);
   } else {
     /* specify auth password for storage key */
     srk->handle.auth.size = sizeof(TPM_SRK_AUTH) - 1;

@@ -19,6 +19,7 @@
 #include "lib_debug/Debug.h"
 
 #include "mbedtls/pk.h"
+#include "mbedtls/pkwrite.h"
 #include "mbedtls/rsa.h"
 
 #include <camkes.h>

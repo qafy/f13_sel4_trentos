@@ -415,7 +415,7 @@ importClientKeys()
     if (res)
     {
         Debug_LOG_ERROR("Can not parse client key, err %d", res);
-        return res;
+        return OS_ERROR_NOT_FOUND;
     }
 
     clntPrvtRsa = mbedtls_pk_rsa(clntPrvtPem);
@@ -455,7 +455,16 @@ loadKeys()
         Debug_LOG_INFO("Client private key was not found in TPM keystore: Loading key from system_config...");
 
         res = importClientKeys();
-        if (res != OS_SUCCESS) {
+        if (res == OS_ERROR_NOT_FOUND) {
+            Debug_LOG_INFO("Client private key was not found in TPM keystore or system_config: Generating new key...");
+
+            res = generateKeys();
+            if (res != OS_SUCCESS) {
+                Debug_LOG_ERROR("Could not generate client key %d", res);
+                return res;
+            }
+        }
+        else if (res != OS_SUCCESS) {
             return res;
         }
 
@@ -479,6 +488,18 @@ loadKeys()
         return res;
     }
     Debug_LOG_INFO("Server public key loaded!");
+
+    /* Print client public key */
+
+    unsigned char *pem = malloc(2000);
+    size_t* pemSz = malloc(sizeof(pemSz));
+
+    TPM_Crypto_exportPublicPem(&cryptoCtx, &hKeyClnt, pem, pemSz);
+
+    Debug_LOG_INFO("Client public key:\n%s", pem);
+
+    free(pem);
+    free(pemSz);
 
 #else
 

@@ -112,14 +112,6 @@ static OS_FileSystem_Config_t cfg =
             sd_rpc,
             sd_port),
 };
-//----------------------------------------------------------------------
-// Timeserver
-//----------------------------------------------------------------------
-
-static const if_OS_Timer_t timer =
-    IF_OS_TIMER_ASSIGN(
-        timer_rpc,
-        timer_notify);
 
 //----------------------------------------------------------------------
 
@@ -133,6 +125,15 @@ __attribute__((unused)) static OS_CryptoKey_Data_t dataClntPub;
 static OS_CryptoKey_Data_t dataClntPrvt;
 
 #endif /* USE_HW_TPM */
+
+//----------------------------------------------------------------------
+// Timeserver
+//----------------------------------------------------------------------
+
+static const if_OS_Timer_t timer =
+    IF_OS_TIMER_ASSIGN(
+        timer_rpc,
+        timer_notify);
 
 static OS_NetworkStack_State_t initState = UNINITIALIZED;
 

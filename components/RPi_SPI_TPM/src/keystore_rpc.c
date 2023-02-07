@@ -50,3 +50,16 @@ OS_Error_t keystore_rpc_storeKey(int handle) {
 
   return OS_SUCCESS;
 }
+
+/* This will clear the entire TPM, not just the Keystore. Use with care! */
+OS_Error_t keystore_rpc_clearTPM() {
+  int rc;
+
+  rc = wolfTPM2_Clear(&dev);
+  if (rc != TPM_RC_SUCCESS) {
+    printf("wolfTPM2_Clear failed: %s\n", TPM2_GetRCString(rc));
+    return OS_ERROR_GENERIC;
+  }
+
+  return OS_SUCCESS;
+}

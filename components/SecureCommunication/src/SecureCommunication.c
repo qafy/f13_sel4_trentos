@@ -904,6 +904,19 @@ int run()
     }
 #endif
 
+#ifdef USE_HW_TPM
+#ifdef CLEAR_TPM
+    Debug_LOG_INFO("Clearing TPM module");
+    res = TPM_Keystore_clearTPM(&keystoreCtx);
+    if (res != OS_SUCCESS)
+    {
+        initState = FATAL_ERROR;
+        Debug_LOG_ERROR("Error while clearing TPM module");
+        return res;
+    }
+#endif
+#endif
+
     res = loadKeys();
     if (res != OS_SUCCESS)
     {

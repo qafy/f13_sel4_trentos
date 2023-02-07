@@ -32,6 +32,10 @@ if(BENCHMARK)
     add_definitions(-DBENCHMARK)
 endif()
 
+if(CLEAR_TPM)
+    add_definitions(-DCLEAR_TPM)
+endif()
+
 if(HW_TPM)
     add_definitions(-DUSE_HW_TPM)
     # Small hack to add definitions to the camkes preprocessor

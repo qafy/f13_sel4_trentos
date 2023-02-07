@@ -13,18 +13,6 @@
 
 #include "RPi_SPI_TPM.h"
 
-OS_Error_t tpm_int_clear_tpm() {
-  int rc;
-
-  rc = wolfTPM2_Clear(&dev);
-  if (rc != TPM_RC_SUCCESS) {
-    printf("wolfTPM2_Clear failed: %s\n", TPM2_GetRCString(rc));
-    return OS_ERROR_GENERIC;
-  }
-
-  return OS_SUCCESS;
-}
-
 OS_Error_t tpm_int_get_or_create_srk(WOLFTPM2_KEY *srk) {
   int rc;
   TPM_HANDLE hierarchy = TPM_RH_OWNER;

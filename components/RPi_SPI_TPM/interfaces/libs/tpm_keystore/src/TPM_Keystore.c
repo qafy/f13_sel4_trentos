@@ -37,3 +37,7 @@ OS_Error_t TPM_Keystore_storeKey(const TPM_Keystore_Handle_t *ctx,
 
   return rc;
 }
+
+OS_Error_t TPM_Keystore_clearTPM(const TPM_Keystore_Handle_t *ctx) {
+  return ctx->clearTPM();
+}

@@ -2,9 +2,13 @@
 # Demo TUM Course
 #
 # Copyright (C) 2021, Hensoldt Cyber GmbH
+# Copyright (C) 2023, Jakob Kukla
 #
 
 cmake_minimum_required(VERSION 3.7.2)
+
+add_compile_definitions(MBEDTLS_RSA_NO_CRT)
+
 
 #-------------------------------------------------------------------------------
 os_set_config_file(
@@ -15,16 +19,44 @@ os_set_config_file(
 #-------------------------------------------------------------------------------
 project(demo_tum_course C)
 
+option(HW_TPM "Use RPi_SPI_TPM component for hardware TPM support" OFF)
+
 include("plat/${PLATFORM}/plat_nic.cmake")
 include("components/SecureCommunication/SecureCommunication.cmake")
 
+if(LOAD_KEYS_FROM_FILESYSTEM)
+    add_definitions(-DLOAD_KEYS_FROM_FILESYSTEM)
+endif()
+
+if(BENCHMARK)
+    add_definitions(-DBENCHMARK)
+endif()
+
+if(HW_TPM)
+    add_definitions(-DUSE_HW_TPM)
+    # Small hack to add definitions to the camkes preprocessor
+    set_property(GLOBAL APPEND PROPERTY CAMKES_ROOT_CPP_FLAGS "-DUSE_HW_TPM")
+
+    include("components/RPi_SPI_TPM/CMakeLists.txt")
+
+    RPi_SPI_TPM_DeclareCAmkESComponent(
+        RPi_SPI_TPM
+        LIBS
+            TimeServer_client
+    )
+
+else()
+    SdHostController_DeclareCAmkESComponent(
+        SdHostController
+    )
+
+    EntropySource_DeclareCAmkESComponent(
+        EntropySource
+    )
+endif()
 
 SecureCommunication_DeclareCAmkESComponent(
     SecureCommunication
-)
-
-EntropySource_DeclareCAmkESComponent(
-    EntropySource
 )
 
 TimeServer_DeclareCAmkESComponent(

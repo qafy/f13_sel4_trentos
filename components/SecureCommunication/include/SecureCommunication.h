@@ -14,13 +14,130 @@
 #include "interfaces/if_OS_Socket.h"
 #include "network/OS_SocketTypes.h"
 
-#include "OS_Crypto.h"
-#include "OS_KeystoreFile.h"
-
+#include "OS_Dataport.h"
+#include "TimeServer.h"
 #include "lib_debug/Debug.h"
+
+#include "mbedtls/pk.h"
+#include "mbedtls/pkwrite.h"
+#include "mbedtls/rsa.h"
 
 #include <camkes.h>
 
+#ifdef USE_HW_TPM
+
+#include "TPM_Crypto.h"
+#include "TPM_Keystore.h"
+
+#else
+
+#include "OS_Crypto.h"
+#include "OS_KeystoreRamFV.h"
+#include "OS_FileSystem.h"
+
+#endif /* USE_HW_TPM */
+
+#define GENERATE_KEYS 0
+
+seL4_Word
+secureCommunication_rpc_get_sender_id(void);
+
+//----------------------------------------------------------------------
+// Network
+//----------------------------------------------------------------------
+
+static const if_OS_Socket_t networkStackCtx =
+    IF_OS_SOCKET_ASSIGN(networkStack);
+
+#ifdef USE_HW_TPM
+
+//----------------------------------------------------------------------
+// TPM Crypto
+//----------------------------------------------------------------------
+
+static const TPM_Crypto_Handle_t cryptoCtx =
+    IF_TPM_CRYPTO_ASSIGN(crypto_rpc, crypto_port);
+
+//----------------------------------------------------------------------
+// TPM Keystore
+//----------------------------------------------------------------------
+
+static const TPM_Keystore_Handle_t keystoreCtx =
+    IF_TPM_KEYSTORE_ASSIGN(keystore_rpc, keystore_port);
+
+// Client Keys
+static TPM_Crypto_Key_t hKeyClnt;
+// Server Key
+static TPM_Crypto_Key_t hKeySrvPub;
+
+#else
+
+//----------------------------------------------------------------------
+// Crypto
+//----------------------------------------------------------------------
+
+static const OS_Crypto_Config_t cryptoCfg = {
+    .mode = OS_Crypto_MODE_LIBRARY,
+    .entropy = IF_OS_ENTROPY_ASSIGN(
+        entropy_rpc,
+        entropy_port),
+};
+
+// key spec for key generation
+static const OS_CryptoKey_Spec_t rsa2048prvt = {
+    .type = OS_CryptoKey_SPECTYPE_BITS,
+    .key = {
+        .type = OS_CryptoKey_TYPE_RSA_PRV,
+        .params.bits = 2048,
+        .attribs = {.flags = OS_CryptoKey_FLAG_NONE,
+                    .keepLocal = true},
+    },
+};
+
+// Crypto handle
+static OS_Crypto_Handle_t hCrypto;
+// Client Keys
+static OS_CryptoKey_Handle_t hKeyClntPrvt, hKeyClntPub;
+// Server Key
+static OS_CryptoKey_Handle_t hKeySrvPub;
+
+//----------------------------------------------------------------------
+// Filesystem
+//----------------------------------------------------------------------
+
+static OS_FileSystem_Config_t cfg =
+    {
+        .type = OS_FileSystem_Type_FATFS,
+        .storage = IF_OS_STORAGE_ASSIGN(
+            sd_rpc,
+            sd_port),
+};
+
+//----------------------------------------------------------------------
+
+// Server Key Data
+static OS_CryptoKey_Data_t dataSrvPub;
+
+// Server Key Data
+__attribute__((unused)) static OS_CryptoKey_Data_t dataClntPub;
+
+// Client Key Data
+static OS_CryptoKey_Data_t dataClntPrvt;
+
+#endif /* USE_HW_TPM */
+
+//----------------------------------------------------------------------
+// Timeserver
+//----------------------------------------------------------------------
+
+static const if_OS_Timer_t timer =
+    IF_OS_TIMER_ASSIGN(
+        timer_rpc,
+        timer_notify);
+
+static OS_NetworkStack_State_t initState = UNINITIALIZED;
+
+// interface methods for OS_Crypto
 OS_Error_t
 secureCommunication_rpc_socket_create(
     const int domain,

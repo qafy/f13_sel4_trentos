@@ -5,3 +5,9 @@ buildvirtual
 simulate
 httpserver
 plat/zynq7000/*
+copytopi
+
+# Nix related stuff
+.direnv/
+.devenv*
+.pre-commit-config.yaml

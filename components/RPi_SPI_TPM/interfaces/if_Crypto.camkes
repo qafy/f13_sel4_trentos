@@ -1,0 +1,31 @@
+/*
+ * CAmkES configuration file for the if_Crypto component interface.
+ *
+ * Copyright (C) 2023, Jakob Kukla
+ */
+
+#pragma once
+
+procedure if_Crypto {
+    include "OS_Error.h";
+
+    OS_Error_t generateKey();
+
+    OS_Error_t importPublic();
+
+    OS_Error_t importPrivate();
+
+    OS_Error_t exportPublicPem(
+        out size_t size
+    );
+
+    OS_Error_t encrypt(
+        in size_t input_size,
+        out size_t output_size
+    );
+
+    OS_Error_t decrypt(
+        in size_t input_size,
+        out size_t output_size
+    );
+};

@@ -2,6 +2,7 @@
  * Main CAmkES configuration file of the exercise demo application.
  *
  * Copyright (C) 2021, Hensoldt Cyber GmbH
+ * Copyright (C) 2023, Jakob Kukla
  */
 
 import <std_connector.camkes>;
@@ -33,7 +34,17 @@ NetworkStack_PicoTcp_COMPONENT_DEFINE(
     NetworkStack_PicoTcp_NO_ADDITIONAL_INTERFACES)
 
 
-#include "components/TestApp/TestApp.camkes"
+#if !defined(USE_HW_TPM)
+
+//----------------------------------------------------------------------
+// SD Card
+//----------------------------------------------------------------------
+
+#include "SdHostController/SdHostController.camkes"
+SdHostController_COMPONENT_DEFINE(SdHostController)
+SdHostController_HW_COMPONENT_DEFINE(SdHostControllerHw)
+
+#endif
 
 //----------------------------------------------------------------------
 // SecureCommunication
@@ -45,15 +56,31 @@ SecureCommunication_COMPONENT_DEFINE(
     SecureCommunication
 )
 
+#ifdef USE_HW_TPM
+    //----------------------------------------------------------------------
+    // TPM Driver
+    //----------------------------------------------------------------------
+
+    #include "components/RPi_SPI_TPM/RPi_SPI_TPM.camkes"
+
+    RPi_SPI_TPM_COMPONENT_DEFINE(RPi_SPI_TPM)
+    RPi_SPI_TPM_HW_COMPONENT_DEFINE(RPi_SPI_TPM_HW)
+#else
+    //----------------------------------------------------------------------
+    // EntropySource
+    //----------------------------------------------------------------------
+
+    #include "EntropySource/camkes/EntropySource.camkes"
+    EntropySource_COMPONENT_DEFINE(
+        EntropySource
+    )
+#endif
+
 //----------------------------------------------------------------------
-// EntropySource
+// TestApp
 //----------------------------------------------------------------------
 
-#include "EntropySource/camkes/EntropySource.camkes"
-EntropySource_COMPONENT_DEFINE(
-    EntropySource
-)
-
+#include "components/TestApp/TestApp.camkes"
 
 //----------------------------------------------------------------------
 // System
@@ -66,11 +93,22 @@ assembly {
         //----------------------------------------------------------------------
         component TimeServer timeServer;
 
+    #ifdef USE_HW_TPM
         TimeServer_INSTANCE_CONNECT_CLIENTS(
             timeServer,
             EXERCISE_DEMO_NIC_CONNECTION_TIMESERVER(nwDriver)
-            nwStack.timeServer_rpc, nwStack.timeServer_notify
+            nwStack.timeServer_rpc, nwStack.timeServer_notify,
+            tpm.timeServer_rpc, tpm.timeServer_notify,
+            secureCommunication.timer_rpc, secureCommunication.timer_notify
         )
+    #else
+        TimeServer_INSTANCE_CONNECT_CLIENTS(
+            timeServer,
+            EXERCISE_DEMO_NIC_CONNECTION_TIMESERVER(nwDriver)
+            nwStack.timeServer_rpc, nwStack.timeServer_notify,
+            secureCommunication.timer_rpc, secureCommunication.timer_notify
+        )
+    #endif
 
         //----------------------------------------------------------------------
         // Network Driver
@@ -87,24 +125,63 @@ assembly {
             nwDriver
         )
 
+    #ifdef USE_HW_TPM
         //----------------------------------------------------------------------
-        // SecureCommunication Component
+        // TPM Driver
         //----------------------------------------------------------------------
-        component   SecureCommunication     secureCommunication;
+        component RPi_SPI_TPM       tpm;
+        component RPi_SPI_TPM_HW    tpm_hw;
 
-        NetworkStack_PicoTcp_INSTANCE_CONNECT_CLIENTS(
-            nwStack,
-            secureCommunication, networkStack
+        RPi_SPI_TPM_INSTANCE_CONNECT(
+            tpm,
+            tpm_hw
+        )
+
+        RPi_SPI_TPM_INSTANCE_CONNECT_CLIENT(
+            tpm,
+            secureCommunication.entropy_rpc, secureCommunication.entropy_port,
+            secureCommunication.crypto_rpc, secureCommunication.crypto_port,
+            secureCommunication.keystore_rpc, secureCommunication.keystore_port
+        )
+
+    #else
+
+        //----------------------------------------------------------------------
+        // Sd Card Component
+        //----------------------------------------------------------------------
+
+        component SdHostController sdHostController;
+        component SdHostControllerHw sdHostControllerHw;
+
+        SdHostController_INSTANCE_CONNECT(
+            sdHostController,
+            sdHostControllerHw
+        )
+
+        SdHostController_INSTANCE_CONNECT_CLIENT(
+            sdHostController,
+            secureCommunication.sd_rpc, secureCommunication.sd_port
         )
 
         //----------------------------------------------------------------------
         // EntropySource Component
         //----------------------------------------------------------------------
-        component   EntropySource   entropySource; 
+        component   EntropySource   entropySource;
 
         EntropySource_INSTANCE_CONNECT_CLIENT(
             entropySource,
             secureCommunication.entropy_rpc, secureCommunication.entropy_port
+        )
+    #endif
+
+        //----------------------------------------------------------------------
+        // SecureCommunication Component
+        //----------------------------------------------------------------------
+        component   SecureCommunication    secureCommunication;
+
+        NetworkStack_PicoTcp_INSTANCE_CONNECT_CLIENTS(
+            nwStack,
+            secureCommunication, networkStack
         )
 
         //----------------------------------------------------------------------
@@ -119,10 +196,30 @@ assembly {
     }
 
     configuration {
+    #ifdef USE_HW_TPM
         TimeServer_CLIENT_ASSIGN_BADGES(
             EXERCISE_DEMO_NIC_TIMESERVER_CLIENTS(nwDriver)
-            nwStack.timeServer_rpc
+            nwStack.timeServer_rpc,
+            tpm.timeServer_rpc,
+            secureCommunication.timer_rpc
         )
+
+        RPi_SPI_TPM_HW_INSTANCE_CONFIGURE_SELF(tpm_hw)
+    #else
+        TimeServer_CLIENT_ASSIGN_BADGES(
+            EXERCISE_DEMO_NIC_TIMESERVER_CLIENTS(nwDriver)
+            nwStack.timeServer_rpc,
+            secureCommunication.timer_rpc
+        )
+
+        SdHostController_INSTANCE_CONFIGURE(
+            sdHostController
+        )
+
+        SdHostController_HW_INSTANCE_CONFIGURE(
+            sdHostControllerHw
+        )
+    #endif
 
         SecureCommunication_CLIENT_ASSIGN_BADGES(
             testApp, secureCommunication

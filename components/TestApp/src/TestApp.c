@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2021, Hensoldt Cyber GmbH
+ * Copyright (C) 2023, Jakob Kukla
  */
 
 #include "system_config.h"
@@ -21,7 +22,7 @@ static const if_OS_Socket_t networkStackCtx =
 //------------------------------------------------------------------------------
 static OS_Error_t
 waitForNetworkStackInit(
-    const if_OS_Socket_t* const ctx)
+    const if_OS_Socket_t *const ctx)
 {
     OS_NetworkStack_State_t networkStackState;
 
@@ -65,13 +66,13 @@ waitForConnectionEstablished(
         char evtBuffer[128];
         const size_t evtBufferSize = sizeof(evtBuffer);
         int numberOfSocketsWithEvents;
-     
+
         ret = OS_Socket_getPendingEvents(
-                  &networkStackCtx,
-                  evtBuffer,
-                  evtBufferSize,
-                  &numberOfSocketsWithEvents);
- 
+            &networkStackCtx,
+            evtBuffer,
+            evtBufferSize,
+            &numberOfSocketsWithEvents);
+
         if (ret != OS_SUCCESS)
         {
             Debug_LOG_ERROR("OS_Socket_getPendingEvents() failed, code %d",
@@ -90,7 +91,8 @@ waitForConnectionEstablished(
         if (numberOfSocketsWithEvents != 1)
         {
             Debug_LOG_ERROR("OS_Socket_getPendingEvents() returned with "
-                            "unexpected #events: %d", numberOfSocketsWithEvents);
+                            "unexpected #events: %d",
+                            numberOfSocketsWithEvents);
             ret = OS_ERROR_INVALID_STATE;
             break;
         }
@@ -145,7 +147,6 @@ waitForConnectionEstablished(
             ret = event.currentError;
             break;
         }
-
     }
 
     return ret;
@@ -166,10 +167,10 @@ int run()
 
     OS_Socket_Handle_t hSocket;
     ret = OS_Socket_create(
-              &networkStackCtx,
-              &hSocket,
-              OS_AF_INET,
-              OS_SOCK_STREAM);
+        &networkStackCtx,
+        &hSocket,
+        OS_AF_INET,
+        OS_SOCK_STREAM);
     if (ret != OS_SUCCESS)
     {
         Debug_LOG_ERROR("OS_Socket_create() failed, code %d", ret);
@@ -177,10 +178,9 @@ int run()
     }
 
     const OS_Socket_Addr_t dstAddr =
-    {
-        .addr = CFG_TEST_HTTP_SERVER,
-        .port = EXERCISE_CLIENT_PORT
-    };
+        {
+            .addr = CFG_TEST_HTTP_SERVER,
+            .port = EXERCISE_CLIENT_PORT};
 
     ret = OS_Socket_connect(hSocket, &dstAddr);
     if (ret != OS_SUCCESS)
@@ -191,7 +191,7 @@ int run()
     }
 
     ret = waitForConnectionEstablished(hSocket.handleID);
- 
+
     if (ret != OS_SUCCESS)
     {
         Debug_LOG_ERROR("waitForConnectionEstablished() failed, error %d", ret);
@@ -201,9 +201,11 @@ int run()
 
     Debug_LOG_INFO("Send request to host...");
 
-    char* request = "GET / HTTP/1.0\r\nHost: " ETH_GATEWAY_ADDR
-                    "\r\nConnection: close\r\n\r\n\0x0";
+    char *request = "Hello World";
+    // "GET / HTTP/1.0\r\nHost: " ETH_GATEWAY_ADDR
+    //              "\r\nConnection: close\r\n\r\n\0x0";
 
+        
     size_t len_request = strlen(request);
     size_t n;
 
@@ -211,8 +213,7 @@ int run()
     {
         seL4_Yield();
         ret = OS_Socket_write(hSocket, request, len_request, &n);
-    }
-    while (ret == OS_ERROR_TRY_AGAIN);
+    } while (ret == OS_ERROR_TRY_AGAIN);
 
     if (OS_SUCCESS != ret)
     {
@@ -221,8 +222,9 @@ int run()
 
     Debug_LOG_INFO("HTTP request successfully sent");
 
+
     static char buffer[OS_DATAPORT_DEFAULT_SIZE];
-    char* position = buffer;
+    char *position = buffer;
     size_t read = sizeof(buffer);
 
     while (read > 0)
@@ -246,15 +248,16 @@ int run()
             read = 0;
             break;
         case OS_ERROR_TRY_AGAIN:
-                Debug_LOG_WARNING(
-                    "OS_Socket_read() reported try again");
-                seL4_Yield();
-                continue;
+            Debug_LOG_WARNING(
+                "OS_Socket_read() reported try again");
+            seL4_Yield();
+            continue;
         default:
             Debug_LOG_ERROR("HTTP page retrieval failed while reading, "
                             "OS_Socket_read() returned error code %d, bytes read %zu",
-                            ret, (size_t) (position - buffer));
+                            ret, (size_t)(position - buffer));
         }
+        break;
     }
 
     // Ensure buffer is null-terminated before printing it

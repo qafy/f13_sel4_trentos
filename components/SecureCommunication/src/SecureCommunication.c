@@ -3,9 +3,135 @@
  *
  * Copyright (C) 2020-2021, HENSOLDT Cyber GmbH
  */
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "OS_Socket.h"
+#include "lib_debug/Debug.h"
+#include "TimeServer.h"
+
+#include "mbedtls/pk.h"
+#include "mbedtls/pkwrite.h"
+#include "mbedtls/rsa.h"
+
+#include <camkes.h>
+
+#ifdef USE_HW_TPM
+
+#include "TPM_Crypto.h"
+#include "TPM_Keystore.h"
+
+#else
+
+#include "OS_Crypto.h"
+#include "OS_KeystoreRamFV.h"
+#include "OS_FileSystem.h"
+
+#endif
+
 #include "SecureCommunication.h"
 
-static OS_Error_t
+#define GENERATE_KEYS 0
+
+//----------------------------------------------------------------------
+// Network
+//----------------------------------------------------------------------
+
+static const if_OS_Socket_t networkStackCtx =
+    IF_OS_SOCKET_ASSIGN(networkStack);
+
+//----------------------------------------------------------------------
+// Timeserver
+//----------------------------------------------------------------------
+
+// timer is not used in SW build without BENCHMARK
+__attribute__((unused)) static const if_OS_Timer_t timer =
+    IF_OS_TIMER_ASSIGN(
+        timer_rpc,
+        timer_notify);
+
+#ifdef USE_HW_TPM
+
+//----------------------------------------------------------------------
+// TPM Crypto
+//----------------------------------------------------------------------
+
+static const TPM_Crypto_Handle_t cryptoCtx =
+    IF_TPM_CRYPTO_ASSIGN(crypto_rpc, crypto_port);
+
+//----------------------------------------------------------------------
+// TPM Keystore
+//----------------------------------------------------------------------
+
+static const TPM_Keystore_Handle_t keystoreCtx =
+    IF_TPM_KEYSTORE_ASSIGN(keystore_rpc, keystore_port);
+
+// Client Keys
+static TPM_Crypto_Key_t hKeyClnt;
+// Server Key
+static TPM_Crypto_Key_t hKeySrvPub;
+
+#else
+
+//----------------------------------------------------------------------
+// Filesystem
+//----------------------------------------------------------------------
+
+static OS_FileSystem_Config_t cfg =
+    {
+        .type = OS_FileSystem_Type_FATFS,
+        .storage = IF_OS_STORAGE_ASSIGN(
+            sd_rpc,
+            sd_port),
+};
+
+//----------------------------------------------------------------------
+// Crypto
+//----------------------------------------------------------------------
+
+static const OS_Crypto_Config_t cryptoCfg = {
+    .mode = OS_Crypto_MODE_LIBRARY,
+    .entropy = IF_OS_ENTROPY_ASSIGN(
+        entropy_rpc,
+        entropy_port),
+};
+
+// key spec for key generation
+static const OS_CryptoKey_Spec_t rsa2048prvt = {
+    .type = OS_CryptoKey_SPECTYPE_BITS,
+    .key = {
+        .type = OS_CryptoKey_TYPE_RSA_PRV,
+        .params.bits = 2048,
+        .attribs = {.flags = OS_CryptoKey_FLAG_NONE,
+                    .keepLocal = true},
+    },
+};
+
+// Crypto handle
+static OS_Crypto_Handle_t hCrypto;
+// Client Keys
+static OS_CryptoKey_Handle_t hKeyClntPrvt, hKeyClntPub;
+// Server Key
+static OS_CryptoKey_Handle_t hKeySrvPub;
+
+// Server Key Data
+static OS_CryptoKey_Data_t dataSrvPub;
+// Server Key Data
+__attribute__((unused)) static OS_CryptoKey_Data_t dataClntPub;
+// Client Key Data
+static OS_CryptoKey_Data_t dataClntPrvt;
+
+#endif /* USE_HW_TPM */
+
+OS_NetworkStack_State_t initState = UNINITIALIZED;
+
+OS_NetworkStack_State_t getInitState() {
+    return initState;
+}
+
+OS_Error_t
 encryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 {
     OS_Error_t res;
@@ -45,7 +171,7 @@ encryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
     return OS_SUCCESS;
 }
 
-static OS_Error_t
+OS_Error_t
 decryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 {
     OS_Error_t res;
@@ -669,332 +795,6 @@ loadKeys()
 #endif /* USE_HW_TPM */
 
     return OS_SUCCESS;
-}
-
-//----------------------------------------------------------------------
-OS_Error_t
-secureCommunication_rpc_socket_create(
-    const int domain,
-    const int socket_type,
-    int *const pHandle)
-{
-    Debug_LOG_INFO("Socket create");
-    OS_Socket_Handle_t handle;
-    OS_Error_t res = OS_Socket_create(&networkStackCtx, &handle, domain, socket_type);
-    if (res != OS_SUCCESS)
-    {
-        Debug_LOG_ERROR("Error while creating Socket");
-        return res;
-    }
-    *pHandle = handle.handleID;
-    return res;
-}
-
-OS_Error_t
-secureCommunication_rpc_socket_close(
-    const int handle)
-{
-    Debug_LOG_INFO("Socket close");
-    OS_Socket_Handle_t handle2 = {.ctx = networkStackCtx, .handleID = handle};
-    return OS_Socket_close(handle2);
-}
-
-OS_Error_t
-secureCommunication_rpc_socket_connect(
-    const int handle,
-    const OS_Socket_Addr_t *const dstAddr)
-{
-    Debug_LOG_INFO("Socket connect");
-    OS_Socket_Handle_t handle2 = {.ctx = networkStackCtx, .handleID = handle};
-    return OS_Socket_connect(handle2, dstAddr);
-}
-
-OS_Error_t
-secureCommunication_rpc_socket_bind(
-    const int handle,
-    const OS_Socket_Addr_t *const localAddr)
-{
-    Debug_LOG_INFO("Socket bind");
-    OS_Socket_Handle_t handle2 = {.ctx = networkStackCtx, .handleID = handle};
-    return OS_Socket_bind(handle2, localAddr);
-}
-
-OS_Error_t
-secureCommunication_rpc_socket_listen(
-    const int handle,
-    const int backlog)
-{
-    Debug_LOG_INFO("Socket listen");
-    OS_Socket_Handle_t handle2 = {.ctx = networkStackCtx, .handleID = handle};
-    return OS_Socket_listen(handle2, backlog);
-}
-
-OS_Error_t
-secureCommunication_rpc_socket_accept(
-    const int handle,
-    int *const pClient_handle,
-    OS_Socket_Addr_t *const srcAddr)
-{
-    Debug_LOG_INFO("Socket accept");
-    OS_Socket_Handle_t handle2 = {.ctx = networkStackCtx, .handleID = handle};
-    OS_Socket_Handle_t pClient_handle2;
-    OS_Error_t res = OS_Socket_accept(handle2, &pClient_handle2, srcAddr);
-    if (res != OS_SUCCESS)
-    {
-        Debug_LOG_ERROR("Error while accepting");
-        return res;
-    }
-    *pClient_handle = pClient_handle2.handleID;
-    return res;
-}
-
-OS_Error_t
-secureCommunication_rpc_socket_write(
-    const int handle,
-    size_t *const pLen)
-{
-    Debug_LOG_INFO("Socket write");
-    OS_Error_t res;
-    // for length of encrypted message see this post
-    // https://crypto.stackexchange.com/questions/42097/what-is-the-maximum-size-of-the-plaintext-message-for-rsa-oaep/42100#42100
-    size_t expectedLen = *pLen > 190 ? 190 : *pLen;
-
-    // get buffers for encryption
-    uint8_t *buf =
-        secureCommunication_rpc_buf(secureCommunication_rpc_get_sender_id());
-    size_t encryptedLen = 256;
-    void *encryptedBuf = malloc(encryptedLen);
-    if (!encryptedBuf)
-    {
-        Debug_LOG_ERROR("Unable to allocate memory");
-        return OS_ERROR_GENERIC;
-    }
-
-    res = encryptBuffer(buf, expectedLen, encryptedBuf, &encryptedLen);
-    if (res != OS_SUCCESS)
-    {
-        free(encryptedBuf);
-        return res;
-    }
-
-    size_t sentLen = 0;
-    // send encrypted data
-    OS_Socket_Handle_t handle2 = {.ctx = networkStackCtx, .handleID = handle};
-    res = OS_Socket_write(handle2, encryptedBuf, encryptedLen, &sentLen);
-    if (res != OS_SUCCESS)
-    {
-        free(encryptedBuf);
-        return res;
-    }
-
-    if (sentLen != encryptedLen)
-    {
-        Debug_LOG_ERROR("Sent data is not a full encrypted block");
-        free(encryptedBuf);
-        return OS_ERROR_GENERIC;
-    }
-
-    *pLen = expectedLen;
-    free(encryptedBuf);
-    return res;
-}
-
-OS_Error_t
-secureCommunication_rpc_socket_sendto(
-    const int handle,
-    size_t *const pLen,
-    const OS_Socket_Addr_t *const dstAddr)
-{
-    Debug_LOG_INFO("Socket sendto");
-    OS_Error_t res;
-    // for length of encrypted message see this post
-    // https://crypto.stackexchange.com/questions/42097/what-is-the-maximum-size-of-the-plaintext-message-for-rsa-oaep/42100#42100
-    size_t expectedLen = *pLen > 190 ? 190 : *pLen;
-
-    // get buffers for encryption
-    uint8_t *buf =
-        secureCommunication_rpc_buf(secureCommunication_rpc_get_sender_id());
-    size_t encryptedLen = 256;
-    void *encryptedBuf = malloc(encryptedLen);
-    if (!encryptedBuf)
-    {
-        Debug_LOG_ERROR("Unable to allocate memory");
-        return OS_ERROR_GENERIC;
-    }
-
-    res = encryptBuffer(buf, expectedLen, encryptedBuf, &encryptedLen);
-    if (res != OS_SUCCESS)
-    {
-        free(encryptedBuf);
-        return res;
-    }
-
-    size_t sentLen = 0;
-    // send encrypted data
-    OS_Socket_Handle_t handle2 = {.ctx = networkStackCtx, .handleID = handle};
-    res = OS_Socket_sendto(handle2, encryptedBuf, encryptedLen, &sentLen, dstAddr);
-    if (res != OS_SUCCESS)
-    {
-        free(encryptedBuf);
-        return res;
-    }
-
-    if (sentLen != encryptedLen)
-    {
-        Debug_LOG_ERROR("Sent data is not a full encrypted block");
-        free(encryptedBuf);
-        return OS_ERROR_GENERIC;
-    }
-
-    *pLen = expectedLen;
-    free(encryptedBuf);
-    return res;
-}
-
-OS_Error_t
-secureCommunication_rpc_socket_read(
-    const int handle,
-    size_t *const pLen)
-{
-
-    Debug_LOG_INFO("Socket read");
-    OS_Error_t res;
-
-    if (*pLen == 0)
-    {
-        return OS_SUCCESS;
-    }
-
-    // get buffers for decryption
-    uint8_t *buf =
-        secureCommunication_rpc_buf(secureCommunication_rpc_get_sender_id());
-    size_t encryptedLen = 256;
-    void *encryptedBuf = malloc(encryptedLen);
-    if (!encryptedBuf)
-    {
-        Debug_LOG_ERROR("Unable to allocate memory");
-        return OS_ERROR_GENERIC;
-    }
-
-    size_t recvLen = 0;
-    OS_Socket_Handle_t handle2 = {.ctx = networkStackCtx, .handleID = handle};
-    do
-    {
-        res = OS_Socket_read(handle2, encryptedBuf, 256, &recvLen);
-        Debug_LOG_WARNING("OS_Socket_read() reported try again");
-        seL4_Yield();
-    } while (res == OS_ERROR_TRY_AGAIN);
-
-    if (res != OS_SUCCESS)
-    {
-        Debug_LOG_ERROR("Error while reading from socket, err %d", res);
-        free(encryptedBuf);
-        return res;
-    }
-    if (recvLen != encryptedLen)
-    {
-        Debug_LOG_ERROR("Sent data is not a full encrypted block");
-        free(encryptedBuf);
-        return OS_ERROR_GENERIC;
-    }
-    size_t decryptedLen = secureCommunication_rpc_buf_size(
-        secureCommunication_rpc_get_sender_id());
-    res = decryptBuffer(encryptedBuf, encryptedLen, buf, &decryptedLen);
-    if (res != OS_SUCCESS)
-    {
-        free(encryptedBuf);
-        return res;
-    }
-
-    *pLen = decryptedLen;
-    free(encryptedBuf);
-    return res;
-}
-
-OS_Error_t
-secureCommunication_rpc_socket_recvfrom(
-    const int handle,
-    size_t *const pLen,
-    OS_Socket_Addr_t *const srcAddr)
-{
-    Debug_LOG_INFO("Socket recvfrom");
-    OS_Error_t res;
-
-    if (*pLen == 0)
-    {
-        return OS_SUCCESS;
-    }
-
-    // get buffers for decryption
-    uint8_t *buf =
-        secureCommunication_rpc_buf(secureCommunication_rpc_get_sender_id());
-    size_t encryptedLen = 256;
-    void *encryptedBuf = malloc(encryptedLen);
-    if (!encryptedBuf)
-    {
-        Debug_LOG_ERROR("Unable to allocate memory");
-        return OS_ERROR_GENERIC;
-    }
-
-    size_t recvLen = 0;
-    OS_Socket_Handle_t handle2 = {.ctx = networkStackCtx, .handleID = handle};
-    do
-    {
-        res = OS_Socket_recvfrom(handle2, encryptedBuf, 256, &recvLen, srcAddr);
-        Debug_LOG_WARNING("OS_Socket_read() reported try again");
-        seL4_Yield();
-    } while (res == OS_ERROR_TRY_AGAIN);
-
-    if (res != OS_SUCCESS)
-    {
-        Debug_LOG_ERROR("Error while reading from socket, err %d", res);
-        free(encryptedBuf);
-        return res;
-    }
-    if (recvLen != encryptedLen)
-    {
-        Debug_LOG_ERROR("Sent data is not a full encrypted block");
-        free(encryptedBuf);
-        return OS_ERROR_GENERIC;
-    }
-    size_t decryptedLen = secureCommunication_rpc_buf_size(
-        secureCommunication_rpc_get_sender_id());
-    res = decryptBuffer(encryptedBuf, encryptedLen, buf, &decryptedLen);
-    if (res != OS_SUCCESS)
-    {
-        free(encryptedBuf);
-        return res;
-    }
-
-    *pLen = decryptedLen;
-    free(encryptedBuf);
-    return res;
-}
-
-OS_NetworkStack_State_t
-secureCommunication_rpc_socket_getStatus(
-    void)
-{
-    if (initState == RUNNING)
-        return OS_Socket_getStatus(&networkStackCtx);
-    else
-        return initState;
-}
-
-OS_Error_t
-secureCommunication_rpc_socket_getPendingEvents(
-    size_t maxRequestedSize,
-    int *pNumberOfEvents)
-{
-    Debug_LOG_INFO("Socket getPendingEvents");
-
-    uint8_t *buf =
-        secureCommunication_rpc_buf(secureCommunication_rpc_get_sender_id());
-    size_t size =
-        secureCommunication_rpc_buf_size(secureCommunication_rpc_get_sender_id());
-
-    return OS_Socket_getPendingEvents(
-        &networkStackCtx, (void *const)buf, size, pNumberOfEvents);
 }
 
 #ifdef BENCHMARK

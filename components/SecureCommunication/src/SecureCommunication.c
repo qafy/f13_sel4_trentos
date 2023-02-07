@@ -33,8 +33,6 @@
 
 #include "SecureCommunication.h"
 
-#define GENERATE_KEYS 0
-
 //----------------------------------------------------------------------
 // Network
 //----------------------------------------------------------------------
@@ -621,6 +619,7 @@ loadKeys()
 #ifndef LOAD_KEYS_FROM_FILESYSTEM
     publicKey = SERVER_PUBLIC_KEY;
 #ifdef BENCHMARK
+    // we need to use the client public key to encrypt when benchmarking
     publicKey = CLIENT_PUBLIC_KEY;
 #endif
     privateKey = CLIENT_PRIVATE_KEY;
@@ -726,17 +725,16 @@ loadKeys()
 #endif
 
     // Keystore init
-#define KEYSTORE_NUM_ELEMENTS 10
-#define KEYSTORE_RAM_BUF_SIZE OS_KeystoreRamFV_SIZE_OF_BUFFER(KEYSTORE_NUM_ELEMENTS)
+    size_t keystoreRamBufSize = OS_KeystoreRamFV_SIZE_OF_BUFFER(KEYSTORE_NUM_ELEMENTS);
 
-    void *keystoreBuffer = malloc(KEYSTORE_RAM_BUF_SIZE);
+    void *keystoreBuffer = malloc(keystoreRamBufSize);
     if (!keystoreBuffer)
     {
         Debug_LOG_ERROR("Can not allocate enough memory for keystoreBuffer");
         return OS_ERROR_GENERIC;
     }
     OS_Keystore_Handle_t hKeys;
-    res = OS_KeystoreRamFV_init(&hKeys, keystoreBuffer, KEYSTORE_RAM_BUF_SIZE);
+    res = OS_KeystoreRamFV_init(&hKeys, keystoreBuffer, keystoreRamBufSize);
     if (res != OS_SUCCESS)
     {
         Debug_LOG_ERROR("Can not initialize keystoreRamFv, err %d", res);
@@ -821,6 +819,7 @@ OS_Error_t benchmark() {
     TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &start);
 
     for (int i = 0; i < 10; i++) {
+        plain_size = 256;
         decryptBuffer(cipher, cipher_size, plain, &plain_size);
     }
     printf("plain: %s\n", plain);
@@ -903,8 +902,8 @@ int run()
         initState = FATAL_ERROR;
         return res;
     }
-
 #endif
+
     res = loadKeys();
     if (res != OS_SUCCESS)
     {
@@ -919,7 +918,6 @@ int run()
     initState = RUNNING;
 
     // Network init
-#define MAX_CLIENTS_NUM 8
     static const event_notify_func_t notifications[MAX_CLIENTS_NUM] =
         {
             secureCommunication_1_event_notify_emit,

@@ -9,6 +9,11 @@
 #include "OS_Error.h"
 #include "OS_Socket.h"
 
+#define MAX_CLIENTS_NUM 8
+#define KEYSTORE_NUM_ELEMENTS 10
+
+#define GENERATE_KEYS 0
+
 seL4_Word secureCommunication_rpc_get_sender_id(void);
 
 OS_NetworkStack_State_t getInitState();

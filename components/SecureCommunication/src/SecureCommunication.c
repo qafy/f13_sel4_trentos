@@ -1046,6 +1046,8 @@ OS_Error_t benchmark() {
     TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &fin);
     Debug_LOG_INFO("Key generation took %lu milliseconds | per iteration : %f", (long unsigned int)(fin - start), (fin - start) / 2. );
 
+    (void) res;
+
 #else
 
     TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &start);
@@ -1111,7 +1113,7 @@ int run()
     }
 
 #ifdef BENCHMARK
-    benchmark();
+    return benchmark();
 #endif
 
     initState = RUNNING;

@@ -10,14 +10,13 @@ encryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 {
     OS_Error_t res;
 
-#ifdef BENCHMARK
-    uint64_t start, fin;
-    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &start);
-#endif
-
 #ifdef USE_HW_TPM
 
+    #ifdef BENCHMARK
+    res = TPM_Crypto_encrypt(&cryptoCtx, &hKeyClnt, input, inputLen, output, outputLen);
+    #else
     res = TPM_Crypto_encrypt(&cryptoCtx, &hKeySrvPub, input, inputLen, output, outputLen);
+    #endif
     if (res != OS_SUCCESS) {
         Debug_LOG_ERROR("Error while proccess code %d", res);
         return res;
@@ -43,10 +42,6 @@ encryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 
 #endif /* USE_HW_TPM */
 
-#ifdef BENCHMARK
-    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &fin);
-    Debug_LOG_INFO("Encryption took %lu milliseconds", (long unsigned int)(fin - start));
-#endif
     return OS_SUCCESS;
 }
 
@@ -54,10 +49,6 @@ static OS_Error_t
 decryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
 {
     OS_Error_t res;
-#ifdef BENCHMARK
-    uint64_t start, fin;
-    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &start);
-#endif
 
 #ifdef USE_HW_TPM
 
@@ -86,11 +77,6 @@ decryptBuffer(void *input, size_t inputLen, void *output, size_t *outputLen)
     OS_CryptoCipher_free(hCipher);
 
 #endif /* USE_HW_TPM */
-
-#ifdef BENCHMARK
-    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &fin);
-    Debug_LOG_INFO("Decryption took %lu milliseconds", (long unsigned int)(fin - start));
-#endif
 
     return OS_SUCCESS;
 }
@@ -508,6 +494,9 @@ loadKeys()
 
 #ifndef LOAD_KEYS_FROM_FILESYSTEM
     publicKey = SERVER_PUBLIC_KEY;
+#ifdef BENCHMARK
+    publicKey = CLIENT_PUBLIC_KEY;
+#endif
     privateKey = CLIENT_PRIVATE_KEY;
 #else
     loadKeysFromFilesystem(&publicKey, &privateKey);
@@ -1008,6 +997,87 @@ secureCommunication_rpc_socket_getPendingEvents(
         &networkStackCtx, (void *const)buf, size, pNumberOfEvents);
 }
 
+#ifdef BENCHMARK
+OS_Error_t benchmark() {
+    OS_Error_t res;
+    uint64_t start, fin;
+    char msg[] = "Das ist ein test";
+    char* cipher = malloc(256);
+    size_t cipher_size;
+    char* plain = malloc(256);
+    size_t plain_size;
+
+    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &start);
+
+    for (int i = 0; i < 100; i++) {
+        encryptBuffer(msg, sizeof(msg), cipher, &cipher_size);
+    }
+
+    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &fin);
+    Debug_LOG_INFO("Encryption took %lu milliseconds | per iteration : %f", (long unsigned int)(fin - start), (fin - start) / 100. );
+
+    // ----------------------------------------------------------------------------------
+
+    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &start);
+
+    for (int i = 0; i < 10; i++) {
+        decryptBuffer(cipher, cipher_size, plain, &plain_size);
+    }
+    printf("plain: %s\n", plain);
+
+    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &fin);
+    Debug_LOG_INFO("Decryption took %lu milliseconds | per iteration : %f", (long unsigned int)(fin - start), (fin - start) / 10. );
+
+    free(plain);
+    free(cipher);
+
+    // ----------------------------------------------------------------------------------
+
+#ifdef USE_HW_TPM
+
+    TPM_Crypto_Key_t testKey;
+
+    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &start);
+
+    for (int i = 0; i < 2; i++) {
+        TPM_Crypto_generateKey(&cryptoCtx, &testKey);
+    }
+
+    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &fin);
+    Debug_LOG_INFO("Key generation took %lu milliseconds | per iteration : %f", (long unsigned int)(fin - start), (fin - start) / 2. );
+
+#else
+
+    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &start);
+
+    // generate keypair
+    res = OS_CryptoKey_generate(&hKeyClntPrvt, hCrypto, &rsa2048prvt);
+    if (res != OS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Failed to generate clnt_prvt key, err %d", res);
+        return res;
+    }
+
+    OS_CryptoKey_Attrib_t attr = {
+        .flags = OS_CryptoKey_FLAG_NONE,
+        .keepLocal = true,
+    };
+    res = OS_CryptoKey_makePublic(&hKeyClntPub, hCrypto, hKeyClntPrvt, &attr);
+    if (res != OS_SUCCESS)
+    {
+        Debug_LOG_ERROR("Failed to generate clnt_pub key, err %d", res);
+        return res;
+    }
+
+    TimeServer_getTime(&timer, TimeServer_PRECISION_MSEC, &fin);
+    Debug_LOG_INFO("Key generation took %lu milliseconds | per iteration : %f", (long unsigned int)(fin - start), (fin - start) / 1. );
+
+#endif
+
+    return OS_SUCCESS;
+}
+#endif
+
 int run()
 {
     OS_Error_t res;
@@ -1039,6 +1109,11 @@ int run()
         initState = FATAL_ERROR;
         return res;
     }
+
+#ifdef BENCHMARK
+    benchmark();
+#endif
+
     initState = RUNNING;
 
     // Network init

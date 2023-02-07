@@ -38,13 +38,17 @@ function(RPi_SPI_TPM_DeclareCAmkESComponent name)
 
     # wolfSSL
     set(WITH_WOLFSSL_TREE ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/3rdParty/wolfSSL)
-    set(WOLFSSL_DEBUG "no")
     set(WOLFSSL_RSA "yes")
     set(WOLFSSL_SINGLE_THREADED "yes")
 
     # wolfTPM
-    set(WOLFTPM_DEBUG "no")
     set(WOLFTPM_INTERFACE "BCM2837_SPI")
+
+    # wolfSSL & wolfTPM debug info
+    if (WOLF_DEBUG)
+        set(WOLFSSL_DEBUG "yes")
+        set(WOLFTPM_DEBUG "yes")
+    endif()
 
     add_subdirectory(${CMAKE_CURRENT_FUNCTION_LIST_DIR}/3rdParty/wolfTPM)
 

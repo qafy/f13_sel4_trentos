@@ -31,7 +31,8 @@
  *      - TPM Simulator
  *
  * Code adapted from:
- *  - wolfTPM examples/tpm_io.c (https://github.com/wolfSSL/wolfTPM/blob/a0bd9fef9842ffbdf933afbd15ed4fa8bc8daf26/examples/tpm_io.c)
+ *  - wolfTPM examples/tpm_io.c
+ * (https://github.com/wolfSSL/wolfTPM/blob/a0bd9fef9842ffbdf933afbd15ed4fa8bc8daf26/examples/tpm_io.c)
  */
 
 #include <wolftpm/tpm2.h>
@@ -50,6 +51,11 @@
 int TPM2_IoCb(TPM2_CTX *ctx, const byte *txBuf, byte *rxBuf, word16 xferSz,
               void *userCtx) {
   bcm2837_spi_transfernb((char *)txBuf, (char *)rxBuf, xferSz);
+
+  /* This is needed for the SLB9670 TPM module.
+   * See
+   * https://github.com/wolfSSL/wolfTPM/blob/818198732573c5b812575f547e9b969195b3d7d2/wolftpm/tpm2_types.h#LL398C19-L398C19
+   */
   util_sleep(20);
 
 #ifdef WOLFTPM_DEBUG_IO

@@ -76,6 +76,7 @@ function(SecureCommunication_DeclareCAmkESComponent
 
     DeclareCAmkESComponent(${name}
         SOURCES
+            ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/secureCommunication_rpc.c
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/SecureCommunication.c
         C_FLAGS
             -Wall

@@ -22,7 +22,7 @@ project(demo_tum_course C)
 option(HW_TPM "Use RPi_SPI_TPM component for hardware TPM support" OFF)
 
 include("plat/${PLATFORM}/plat_nic.cmake")
-include("components/SecureCommunication/SecureCommunication.cmake")
+include("components/SecureCommunication/CMakeLists.txt")
 
 if(LOAD_KEYS_FROM_FILESYSTEM)
     add_definitions(-DLOAD_KEYS_FROM_FILESYSTEM)
@@ -30,6 +30,10 @@ endif()
 
 if(BENCHMARK)
     add_definitions(-DBENCHMARK)
+endif()
+
+if(CLEAR_TPM)
+    add_definitions(-DCLEAR_TPM)
 endif()
 
 if(HW_TPM)

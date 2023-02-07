@@ -7,6 +7,7 @@
 
 #include "OS_Dataport.h"
 #include "OS_Error.h"
+#include "lib_debug/Debug.h"
 
 #include <string.h>
 
@@ -28,7 +29,7 @@ OS_Error_t crypto_rpc_generateKey() {
 
   rc = tpm_int_get_or_create_srk(&srk);
   if (rc != OS_SUCCESS) {
-    printf("keystore_int_get_or_create_srk failed: %d\n", rc);
+    Debug_LOG_ERROR("keystore_int_get_or_create_srk failed: %d\n", rc);
     return rc;
   }
 
@@ -36,8 +37,8 @@ OS_Error_t crypto_rpc_generateKey() {
       &template, TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
                      TPMA_OBJECT_decrypt | TPMA_OBJECT_noDA);
   if (tpm_rc != TPM_RC_SUCCESS) {
-    printf("wolfTPM2_GetKeyTemplate_RSA failed 0x%x: %s\n", tpm_rc,
-           TPM2_GetRCString(tpm_rc));
+    Debug_LOG_ERROR("wolfTPM2_GetKeyTemplate_RSA failed 0x%x: %s\n", tpm_rc,
+                    TPM2_GetRCString(tpm_rc));
     return OS_ERROR_GENERIC;
   }
 
@@ -52,8 +53,8 @@ OS_Error_t crypto_rpc_generateKey() {
   tpm_rc =
       wolfTPM2_CreateAndLoadKey(&dev, key, &srk.handle, &template, NULL, 0);
   if (tpm_rc != TPM_RC_SUCCESS) {
-    printf("wolfTPM2_CreateAndLoadKey failed 0x%x: %s\n", tpm_rc,
-           TPM2_GetRCString(tpm_rc));
+    Debug_LOG_ERROR("wolfTPM2_CreateAndLoadKey failed 0x%x: %s\n", tpm_rc,
+                    TPM2_GetRCString(tpm_rc));
     return OS_ERROR_GENERIC;
   }
 
@@ -75,8 +76,8 @@ OS_Error_t crypto_rpc_importPublic() {
   tpm_rc = wolfTPM2_LoadRsaPublicKey_ex(&dev, &key, n, nSz, e, TPM_ALG_NULL,
                                         WOLFTPM2_WRAP_DIGEST);
   if (tpm_rc != TPM_RC_SUCCESS) {
-    printf("wolfTPM2_LoadRsaPublicKey failed 0x%x: %s\n", tpm_rc,
-           TPM2_GetRCString(tpm_rc));
+    Debug_LOG_ERROR("wolfTPM2_LoadRsaPublicKey failed 0x%x: %s\n", tpm_rc,
+                    TPM2_GetRCString(tpm_rc));
     return OS_ERROR_GENERIC;
   }
 
@@ -105,22 +106,22 @@ OS_Error_t crypto_rpc_importPrivate() {
 
   rc = tpm_int_get_or_create_srk(&srk);
   if (rc != OS_SUCCESS) {
-    printf("keystore_int_get_or_create_srk failed: %d\n", rc);
+    Debug_LOG_ERROR("keystore_int_get_or_create_srk failed: %d\n", rc);
     return rc;
   }
 
   tpm_rc = wolfTPM2_ImportRsaPrivateKey(&dev, &srk, &keyblob, n, nSz, e, q, qSz,
                                         TPM_ALG_NULL, WOLFTPM2_WRAP_DIGEST);
   if (tpm_rc != TPM_RC_SUCCESS) {
-    printf("wolfTPM2_ImportRsaPrivateKey failed 0x%x: %s\n", tpm_rc,
-           TPM2_GetRCString(tpm_rc));
+    Debug_LOG_ERROR("wolfTPM2_ImportRsaPrivateKey failed 0x%x: %s\n", tpm_rc,
+                    TPM2_GetRCString(tpm_rc));
     return OS_ERROR_GENERIC;
   }
 
   tpm_rc = wolfTPM2_LoadKey(&dev, &keyblob, &srk.handle);
   if (tpm_rc != TPM_RC_SUCCESS) {
-    printf("wolfTPM2_LoadKey failed 0x%x: %s\n", tpm_rc,
-           TPM2_GetRCString(tpm_rc));
+    Debug_LOG_ERROR("wolfTPM2_LoadKey failed 0x%x: %s\n", tpm_rc,
+                    TPM2_GetRCString(tpm_rc));
     return OS_ERROR_GENERIC;
   }
 
@@ -141,13 +142,15 @@ OS_Error_t crypto_rpc_exportPublicPem(size_t *size) {
 
   tpm_rc = wolfTPM2_ReadPublicKey(&dev, &key, handle->hndl);
   if (tpm_rc != TPM_RC_SUCCESS) {
-    printf("wolfTPM2_ReadPublicKey failed %s\n", TPM2_GetRCString(tpm_rc));
+    Debug_LOG_ERROR("wolfTPM2_ReadPublicKey failed %s\n",
+                    TPM2_GetRCString(tpm_rc));
     return OS_ERROR_GENERIC;
   }
 
   tpm_rc = wolfTPM2_RsaKey_TpmToPemPub(&dev, &key, output, &output_size);
   if (tpm_rc != TPM_RC_SUCCESS) {
-    printf("wolfTPM2_TpmToPemPub failed: %s\n", TPM2_GetRCString(tpm_rc));
+    Debug_LOG_ERROR("wolfTPM2_TpmToPemPub failed: %s\n",
+                    TPM2_GetRCString(tpm_rc));
     return OS_ERROR_GENERIC;
   }
 
@@ -168,13 +171,14 @@ OS_Error_t crypto_rpc_encrypt(size_t input_size, size_t *output_size) {
                           OS_Dataport_getBuf(c_port) + sizeof(WOLFTPM2_HANDLE),
                           (int)input_size, output, (int *)output_size);
   if (tpm_rc != TPM_RC_SUCCESS) {
-    printf("wolfTPM2_RsaEncrypt failed 0x%x: %s\n", tpm_rc,
-           TPM2_GetRCString(tpm_rc));
+    Debug_LOG_ERROR("wolfTPM2_RsaEncrypt failed 0x%x: %s\n", tpm_rc,
+                    TPM2_GetRCString(tpm_rc));
     return OS_ERROR_GENERIC;
   }
 
   if (OS_Dataport_getSize(c_port) < *output_size) {
     *output_size = 0;
+    Debug_LOG_ERROR("crypto_rpc_encrypt failed: Dataport smaller than output");
     return OS_ERROR_BUFFER_TOO_SMALL;
   }
 
@@ -193,8 +197,8 @@ OS_Error_t crypto_rpc_decrypt(size_t input_size, size_t *output_size) {
                           OS_Dataport_getBuf(c_port) + sizeof(WOLFTPM2_HANDLE),
                           (int)input_size, output, (int *)output_size);
   if (tpm_rc != TPM_RC_SUCCESS) {
-    printf("wolfTPM2_RsaDecrypt failed 0x%x: %s\n", tpm_rc,
-           TPM2_GetRCString(tpm_rc));
+    Debug_LOG_ERROR("wolfTPM2_RsaDecrypt failed 0x%x: %s\n", tpm_rc,
+                    TPM2_GetRCString(tpm_rc));
     return OS_ERROR_GENERIC;
   }
 

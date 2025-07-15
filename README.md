@@ -10,7 +10,7 @@
 
 ## Documentation
 
-Documentation can be found [here](../../wikis/documentation).
+Documentation can be found in the doc folder. 
 
 [trentos-url]: https://www.trentos.de/
 [sel4-url]:    https://www.trentos.de/
